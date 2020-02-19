@@ -7,7 +7,7 @@ decl
     | type_def
     | expr
 expr
-    = LET [REC] ID [':' type] '=' expr
+    = LET [REC] id_pat [':' type] '=' expr
     | FUN ID [':' type] ('=' | '|') params '->' expr {'|' params '->' expr}
     | FUN ID [':' type} a_params '=' expr
     | FN params '->' expr {'|' params '->' expr}
@@ -15,7 +15,9 @@ expr
     | MATCH expr '{' match_list '}'
     | '{' {expr} '}'
     | logical_expr
-
+id_pat
+    = ID
+    | '(' id_pat {',' id_pat} ')'
 a_params
     = '()' | ID {ID}
 params
