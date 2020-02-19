@@ -1,0 +1,130 @@
+
+program
+    = {decl | expr}
+decl
+    = MODULE C_ID
+    | IMPORT C_ID [AS C_ID]
+    | type_def
+    | expr
+expr
+    = LET [REC] ID [':' type] '=' expr
+    | FUN ID [':' type] ('=' | '|') params '->' expr {'|' params '->' expr}
+    | FUN ID [':' type} a_params '=' expr
+    | FN params '->' expr {'|' params '->' expr}
+    | IF expr THEN expr [ELSE expr]
+    | MATCH expr '{' match_list '}'
+    | '{' {expr} '}'
+    | logical_expr
+
+a_params
+    = '()' | ID {ID}
+params
+    = '()' | patterns [WHEN expr]
+patterns
+    = pattern {pattern}
+pattern
+    = or_pattern [AS ID]
+or_pattern
+    = cons_pattern {'|' cons_pattern}
+cons_pattern
+    = a_pattern {':' a_pattern}
+a_pattern
+    = '[]'
+    | '_'
+    | ID
+    | BOOL_LIT | INT_LIT | CHAR_LIT | STRING_LIT 
+    | '(' pattern_list ')'
+    | '[' pattern_list ']'
+    | C_ID {'.' C_ID} pattern
+    | C_ID {'.' C_ID} '{' [pattern {',' pattern}] '}'
+pattern_list
+    = pattern
+    | pattern ',' pattern_list
+
+type_def
+    = TYPE [type_param] ID '=' type
+type_param
+    = TVAR | '(' TVAR {',' TVAR} ')'
+type
+    = UNIT | BOOL | INT | CHAR | FLOAT | STRING
+    | ID | TVAR
+    | '(' type ')'
+    | '(' type {',' type} ')'
+    | '[' type ']'
+    | type '->' type
+    | type {type} ID
+    | '{' {record_element} '}'
+record_element
+    = [MUTABLE] ID {',' ID} ':' type ';'
+
+logical_expr
+    = equal_expr {logical_op equal_expr}
+equal_expr
+    = cons_expr [equal_op cons_expr]
+cons_expr
+    = add_expr {':' add_expr}
+add_expr
+    = mul_expr {add_op mul_expr}
+mul_expr
+    = apply_expr {mul_op apply_expr}
+apply_expr
+    = unary_expr {simple_expr}
+unary_expr
+    = [unary_op] simple_expr
+simple_expr
+    = id_expr
+    | BOOL_LIT | INT_LIT | CHAR_LIT | STRING_LIT 
+    | '()' | '(' expr {',' expr} ')'
+    | '[' [expr {',' expr}] ']'
+id_expr
+    = [C_ID {'.' C_ID} '.'] ID {'.' ID} [assign]
+    | C_ID {'.' C_ID} expr
+    | C_ID {'.' C_ID} '{' [expr {',' expr}] '}'
+assign
+    = '<-' expr
+    | ':=' expr
+
+logical_op = '||' | '&&'
+equal_op = '==' | '!=' | '<' | '<=' | '>' | '>='
+add_op = '+' | '-'
+mul_op = '*' | '/' | '%'
+unary_op = '!' | '-' | '&' | '*'
+
+module
+import
+as
+let
+rec
+fun
+fn
+if
+then
+else
+match
+when
+mutable
+
+ID
+C_ID
+BOOL_LIT
+INT_LIT
+CHAR_LIT
+STRING_LIT
++
+*
+%
+/
+.
+,
+;
+- ->
+= ==
+! !=
+< <= <-
+> >=
+: :=
+| ||
+& &&
+[ ] []
+( ) ()
+{ }

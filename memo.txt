@@ -1,0 +1,137 @@
+* Function
+
+fun fact :: int -> int
+        = 0 -> 1
+        | n -> n * fact (n-1)
+
+fun fact :: int -> int
+    | n when n == 0 -> 1
+    | n -> n * fact (n-1)
+
+fun length :: [a] -> int
+    | [] -> 0
+    | _:xs -> 1 + length xs
+
+fun add :: int -> int -> int
+    = x y -> x + y
+
+let add = fn x y -> x + y 
+
+let inc = add 1
+
+let rec fact = 0 -> 1 | n -> n * fact (n-1)
+
+let rec length =
+    fn [] -> []
+    | _:xs -> 1 + length xs
+
+* Bind
+
+let x = 1
+
+
+* Compound
+
+{ a; b; c; }
+
+* Match
+
+match a {
+    | x when p -> ...
+    | y -> ...
+    | _ -> ...
+}
+
+
+* List
+
+    [1,2,3]
+    1:2:[3]
+    1:2:3:[]
+    x:xs
+
+* Tuple
+
+    (1,2,3)
+    ("abc", 100)
+
+
+* Record
+
+    type Point = { x : int; y : int }
+    Point { x = 1, y = 2 }
+    Point { 1, 2 }
+
+    val p = Point {1, 2}
+    p.x
+
+* Variant
+
+    type Color = Red | Green | Blue | RGB (int,int,int)
+
+
+* Type
+
+    int
+    [int]
+    (int, int)
+    int -> int
+
+    type x = X int
+    type 'a option = None | Some 'a
+    type ('a, 'b) pair = Pair ('a, 'b)
+
+* assignment
+
+    val x = & 0
+    x := *x + 1
+    
+* comment
+
+    // ...
+
+    /* ... */
+    /* /* ... */ */
+
+* module
+
+module List
+fun map :: ('a -> 'b) ['a] -> ['b]
+    | _ [] -> []
+    | f x:xs -> (f x) : (map f xs)
+
+fun append :: ['a] -> ['a] -> ['a]
+    | [] lst -> lst
+    | x:xs lst -> x : (append xs lst)
+
+fun reverse :: ['a] -> ['a]
+    | [] -> []
+    | x:xs -> append (reverse xs) [x]
+
+fun length :: ['a] -> int
+    | [] -> 0
+    | x:xs -> 1 + length xs
+
+import List as L
+L.length [1,2,3]
+
+
+* and
+
+fun take :: ['a] -> 'a
+    | [] -> []
+    | x:xs -> x:(skip xs)
+and skip :: ['a] -> 'a
+    | [] -> []
+    | x:xs -> take xs
+
+* 
+
+fun add :: int -> int -> int
+    | x 0 -> x
+    | 0 y -> y
+    | x y -> x + y
+
+fun add x y = x + y
+fun add = x y -> x + y
+
