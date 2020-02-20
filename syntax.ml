@@ -3,8 +3,10 @@ exception Error of string
 
 let g_verbose = ref false
 
+type ident = string
+
 type token
-    = EOF | NEWLINE | ID of string | C_ID of string | BOOL_LIT of bool | INT_LIT of int
+    = EOF | NEWLINE | ID of ident | C_ID of ident | BOOL_LIT of bool | INT_LIT of int
     | CHAR_LIT of char | FLOAT_LIT of float | STRING_LIT of string | TVAR of int
     | MODULE | IMPORT | AS | TYPE | LET | REC | FUN | FN | IF | THEN
     | ELSE | MATCH | WHEN | MUTABLE
@@ -18,6 +20,32 @@ type token_t = {
     line : int;
     col : int;
 }
+
+type binop = BinAdd | BinSub | BinMul | BinDiv | BinMod | BinLT | BinLE
+        | BinGT | BinGE | BinEql | BinNeq | BinLor | BinLand | BinCons
+
+type unop = UNot | UMinus
+
+type expr =
+    | Eof | Unit | Null | WildCard
+    | BoolLit of bool | IntLit of int | CharLit of char | FloatLit of float
+    | StringLit of string | Ident of ident | IdentMod of ident * expr
+    | Tuple of expr list
+    | Binary of binop * expr * expr
+    | Unary of unop * expr
+    | Let of ident * expr
+    | LetRec of ident * expr
+    | Fn of expr * expr
+    | Apply of expr * expr
+    | If of expr * expr * expr
+    | Comp of expr list
+(*
+    | Match of expr * (pattern * expr) list
+    | TypeDef of int option * ident * typ
+*)
+    | Module of ident
+    | Import of ident * ident option
+
 
 let token_to_string = function
     | EOF -> "<EOF>" | NEWLINE -> "<NEWLINE>" | ID id -> id | C_ID id -> id
