@@ -5,6 +5,7 @@ type t = {
     source : string;
     len : int;
     mutable pos : int;
+    mutable cur_col : int;
     mutable line : int;
     mutable col : int;
 }
@@ -23,13 +24,14 @@ let next_char scan =
         ()
     else begin
         scan.pos <- scan.pos + 1;
-        scan.col <- scan.col + 1
+        scan.cur_col <- scan.cur_col + 1
     end
 
 let next_line scan =
     next_char scan;
     scan.line <- scan.line + 1;
-    scan.col <- 0
+    scan.cur_col <- 1;
+    scan.col <- 1
 
 let cut_token pred scan =
     let buffer = Buffer.create 5 in
@@ -135,7 +137,7 @@ let rec skip_newline scan =
     | Some '\n' -> skip_newline scan
     | _ -> NEWLINE
 
-and skip_comment scan =
+let rec skip_comment scan =
     next_char scan;
     match peek scan with
     | Some '\n' -> skip_newline scan
@@ -157,6 +159,9 @@ let rec skip_nested_comment scan =
                 skip_nested_comment scan
             else ();
             loop ()
+        | Some '\n' ->
+            next_line scan;
+            loop ()
         | _ ->
             next_char scan;
             loop ()
@@ -170,6 +175,7 @@ let rec scan_token scan =
             (next_char scan; token_type2)
         | _ -> token_type1
     in
+    scan.col <- scan.cur_col;
     match peek scan with
     | None -> EOF
     | Some ' ' | Some '\t' | Some '\r' -> next_char scan; scan_token scan
@@ -229,16 +235,19 @@ let rec scan_token scan =
             raise (Error ("illegal character '" ^ String.make 1 c ^ "'"))
         end
 
+let get_token scan =
+    let tok = scan_token scan in
+    { token = tok; line = scan.line; col = scan.col }
+
 let get_tokens scan =
-    let make_token_t tok = { token = tok; line = scan.line; col = scan.col } in
     let rec loop result =
-        let token = scan_token scan in
-        match token with
-        | EOF -> (make_token_t token)::result
-        | _ -> loop ((make_token_t token)::result)
+        let t = get_token scan in
+        match t.token with
+        | EOF -> t::result
+        | _ -> loop (t::result)
     in 
     List.rev (loop [])
 
 let from_string s =
-    { source = s; len = String.length s; pos = 0; line = 1; col = 0 }
+    { source = s; len = String.length s; pos = 0; cur_col = 0; line = 1; col = 0 }
 

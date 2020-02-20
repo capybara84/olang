@@ -18,6 +18,7 @@ let test_ok () =
 
 let test_fail s =
     incr n_fail;
+    print_newline ();
     print_endline @@ red "!" ^ s
 
 let test_eq a b m =
@@ -36,43 +37,58 @@ let test_report () =
 (*------------------------*)
 
 let test_text = "
-identifier Ident 12345
-'a' '\\t' \"abc\\n\" 'b
-module import as type
-let rec fun fn if then
-else match when mutable
-_ + * % . , ;
-- -> = == ! != < <= <- > >=
-: := | || & && [ ] []
-( ) () { } /
-"
+/* test
+    /* nest */
+*/
+
+/*  6 */ identifier Ident 12345
+/*  7 */ 'a' '\\t' \"abc\\n\" 'b
+/*  8 */ module import as type
+
+// comment
+
+/* 12 */ let rec fun fn if then
+/* 13 */ else match when mutable
+/* 14 */ _ + * % . , ;
+/* 15 */ - -> = == ! != < <= <- > >=
+/* 16 */ : := | || & && [ ] []
+/* 17 */ ( ) () { } /
+/* 18 */"
 
 let test_tokens = [
-    NEWLINE; ID "identifier"; C_ID "Ident"; INT_LIT 12345; NEWLINE;
-    CHAR_LIT 'a'; CHAR_LIT '\t'; STRING_LIT "abc\n"; TVAR 1; NEWLINE;
-    MODULE; IMPORT; AS; TYPE; NEWLINE;
-    LET; REC; FUN; FN; IF; THEN; NEWLINE;
-    ELSE; MATCH; WHEN; MUTABLE; NEWLINE;
-    WILDCARD; PLUS; STAR; PERCENT; DOT; COMMA; SEMI; NEWLINE;
-    MINUS; RARROW; EQ; EQL; NOT; NEQ; LT; LE; LARROW; GT; GE; NEWLINE;
-    COLON; ASSIGN; OR; LOR; AND; LAND; LSBRA; RSBRA; NULL; NEWLINE;
-    LPAR; RPAR; UNIT; LBRACE; RBRACE; SLASH; NEWLINE;
-    EOF
+    (1,2,NEWLINE); (1,6,NEWLINE);
+    (10,6, ID "identifier"); (21,6, C_ID "Ident"); (27,6, INT_LIT 12345); (1,7, NEWLINE);
+    (10,7, CHAR_LIT 'a'); (14,7, CHAR_LIT '\t'); (19,7, STRING_LIT "abc\n"); (27,7, TVAR 1); (1,8, NEWLINE);
+    (10,8, MODULE); (17,8, IMPORT); (24,8, AS); (27,8, TYPE); (1,10, NEWLINE); (1,12, NEWLINE);
+    (10,12, LET); (14,12, REC); (18,12, FUN); (22,12, FN); (25,12, IF); (28,12, THEN); (1,13, NEWLINE);
+    (10,13, ELSE); (15,13, MATCH); (21,13, WHEN); (26,13, MUTABLE); (1,14, NEWLINE);
+    (10,14, WILDCARD); (12,14, PLUS); (14,14, STAR); (16,14, PERCENT); (18,14, DOT);
+    (20,14, COMMA); (22,14, SEMI); (1,15, NEWLINE);
+    (10,15, MINUS); (12,15, RARROW); (15,15, EQ); (17,15, EQL); (20,15, NOT); (22,15, NEQ);
+    (25,15, LT); (27,15, LE); (30,15, LARROW); (33,15, GT); (35,15, GE); (1,16, NEWLINE);
+    (10,16, COLON); (12,16, ASSIGN); (15,16, OR); (17,16, LOR); (20,16, AND);
+    (22,16, LAND); (25,16, LSBRA); (27,16, RSBRA); (29,16, NULL); (1,17, NEWLINE);
+    (10,17, LPAR); (12,17, RPAR); (14,17, UNIT); (17,17, LBRACE); (19,17, RBRACE);
+    (21,17, SLASH); (1,18, NEWLINE); (9,18, EOF);
 ]
 
 let scanner_test verbose =
     print_string "Scanner Test:";
-    let tokens = Scanner.get_tokens @@ Scanner.from_string test_text in
-    let len_tt = List.length test_tokens in
-    let len_t = List.length tokens in
-    test_eq len_tt len_t ("length " ^ string_of_int len_tt ^ " != " ^ string_of_int len_t);
-    if verbose then
-        List.iter (fun x ->
-                print_endline ("[" ^ token_to_string x.token ^ ", "
-                    ^ string_of_int x.col ^ ":" ^ string_of_int x.line ^ "]")) tokens;
-    List.iter2 (fun tt t -> test_eq tt t.token
-                ((token_to_string tt) ^ " != " ^ (token_to_string t.token)))
-            test_tokens tokens;
+    (try
+        let tokens = Scanner.get_tokens @@ Scanner.from_string test_text in
+        let len_tt = List.length test_tokens in
+        let len_t = List.length tokens in
+        test_eq len_tt len_t ("length " ^ string_of_int len_tt ^ " != " ^ string_of_int len_t);
+        List.iter2 (fun (c,n,tt) t ->
+            if verbose then begin
+                Printf.printf "required [%d:%d '%s']\n" c n (token_to_string tt);
+                Printf.printf "parsed [%d:%d '%s']\n" t.col t.line (token_to_string t.token)
+            end;
+            test_eq (c, n, tt) (t.col, t.line, t.token)
+                (Printf.sprintf "(%d:%d,'%s') != (%d:%d,'%s')" c n (token_to_string tt)
+                                    t.col t.line (token_to_string t.token)))
+            test_tokens tokens
+    with Invalid_argument s -> test_fail @@ "Invalid_argument " ^ s);
     print_newline ()
 
 
