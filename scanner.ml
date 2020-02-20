@@ -60,21 +60,10 @@ let scan_c_ident scan =
 let scan_ident scan =
     let id = cut_token is_ident scan in
     match id with
-    | "_" -> WILDCARD
-    | "module" -> MODULE
-    | "import" -> IMPORT
-    | "as" -> AS
-    | "type" -> TYPE
-    | "let" -> LET
-    | "rec" -> REC
-    | "fun" -> FUN
-    | "fn" -> FN
-    | "if" -> IF
-    | "then" -> THEN
-    | "else" -> ELSE
-    | "match" -> MATCH
-    | "when" -> WHEN
-    | "mutable" -> MUTABLE
+    | "_" -> WILDCARD | "module" -> MODULE | "import" -> IMPORT | "as" -> AS
+    | "type" -> TYPE | "let" -> LET | "rec" -> REC | "fun" -> FUN | "fn" -> FN
+    | "if" -> IF | "then" -> THEN | "else" -> ELSE | "match" -> MATCH
+    | "when" -> WHEN | "mutable" -> MUTABLE
     | _ -> ID id
 
 let get_char scan =
@@ -188,9 +177,9 @@ let rec scan_token scan =
     | Some '+' -> next_char scan; PLUS
     | Some '*' -> next_char scan; STAR
     | Some '%' -> next_char scan; PERCENT
-    | Some '.' -> next_char scan; DOT
     | Some ',' -> next_char scan; COMMA
     | Some ';' -> next_char scan; SEMI
+    | Some '.' -> scan_token2 '.' RANGE DOT
     | Some '-' -> scan_token2 '>' RARROW MINUS
     | Some '=' -> scan_token2 '=' EQL EQ
     | Some '!' -> scan_token2 '=' NEQ NOT

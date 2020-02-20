@@ -8,7 +8,7 @@ type token
     | CHAR_LIT of char | FLOAT_LIT of float | STRING_LIT of string | TVAR of int
     | MODULE | IMPORT | AS | TYPE | LET | REC | FUN | FN | IF | THEN
     | ELSE | MATCH | WHEN | MUTABLE
-    | WILDCARD | PLUS | STAR | PERCENT | DOT | COMMA | SEMI
+    | WILDCARD | PLUS | STAR | PERCENT | COMMA | SEMI | DOT | RANGE
     | MINUS | RARROW | EQ | EQL | NOT | NEQ | LT | LE | LARROW | GT | GE
     | COLON | ASSIGN | OR | LOR | AND | LAND | LSBRA | RSBRA | NULL
     | LPAR | RPAR | UNIT | LBRACE | RBRACE | SLASH
@@ -27,9 +27,10 @@ let token_to_string = function
     | TVAR n -> "'" ^ string_of_int n
     | MODULE -> "module" | IMPORT -> "import" | AS -> "as" | TYPE -> "type" 
     | LET -> "let" | REC -> "rec" | FUN -> "fun" | FN -> "fn" | IF -> "if"
-    | THEN -> "then" | ELSE -> "else" | MATCH -> "match" | WHEN -> "when" | MUTABLE -> "mutable"
-    | WILDCARD -> "_" | PLUS -> "+" | STAR -> "*" | PERCENT -> "%" | DOT -> "." | COMMA -> ","
-    | SEMI -> ";" | MINUS -> "-" | RARROW -> "->" | EQ -> "=" | EQL -> "=="
+    | THEN -> "then" | ELSE -> "else" | MATCH -> "match" | WHEN -> "when"
+    | MUTABLE -> "mutable" | WILDCARD -> "_" | PLUS -> "+" | STAR -> "*"
+    | PERCENT -> "%" | COMMA -> "," | SEMI -> ";" | DOT -> "." | RANGE -> ".."
+    | MINUS -> "-" | RARROW -> "->" | EQ -> "=" | EQL -> "=="
     | NOT -> "!" | NEQ -> "!=" | LT -> "<" | LE -> "<=" | LARROW -> "<-"
     | GT -> ">" | GE -> ">=" | COLON -> ":" | ASSIGN -> ":=" | OR -> "|"
     | LOR -> "||" | AND -> "&" | LAND -> "&&" | LSBRA -> "[" | RSBRA -> "]"

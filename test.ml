@@ -49,7 +49,7 @@ let test_text = "
 
 /* 12 */ let rec fun fn if then
 /* 13 */ else match when mutable
-/* 14 */ _ + * % . , ;
+/* 14 */ _ + * % , ; . ..
 /* 15 */ - -> = == ! != < <= <- > >=
 /* 16 */ : := | || & && [ ] []
 /* 17 */ ( ) () { } /
@@ -62,8 +62,8 @@ let test_tokens = [
     (10,8, MODULE); (17,8, IMPORT); (24,8, AS); (27,8, TYPE); (1,10, NEWLINE); (1,12, NEWLINE);
     (10,12, LET); (14,12, REC); (18,12, FUN); (22,12, FN); (25,12, IF); (28,12, THEN); (1,13, NEWLINE);
     (10,13, ELSE); (15,13, MATCH); (21,13, WHEN); (26,13, MUTABLE); (1,14, NEWLINE);
-    (10,14, WILDCARD); (12,14, PLUS); (14,14, STAR); (16,14, PERCENT); (18,14, DOT);
-    (20,14, COMMA); (22,14, SEMI); (1,15, NEWLINE);
+    (10,14, WILDCARD); (12,14, PLUS); (14,14, STAR); (16,14, PERCENT); (18,14, COMMA);
+    (20,14, SEMI); (22,14, DOT); (24,14, RANGE); (1,15, NEWLINE);
     (10,15, MINUS); (12,15, RARROW); (15,15, EQ); (17,15, EQL); (20,15, NOT); (22,15, NEQ);
     (25,15, LT); (27,15, LE); (30,15, LARROW); (33,15, GT); (35,15, GE); (1,16, NEWLINE);
     (10,16, COLON); (12,16, ASSIGN); (15,16, OR); (17,16, LOR); (20,16, AND);
@@ -95,3 +95,4 @@ let scanner_test verbose =
 let test () =
     scanner_test !g_verbose;
     test_report ()
+
