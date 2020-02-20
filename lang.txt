@@ -1,6 +1,46 @@
 
 program
-    = {decl | expr}
+    = {expr}
+expr
+    = LET [REC] id_pat [':' type] '=' expr
+    | FUN ID [':' type} a_params '=' expr
+    | FN params '->' expr
+    | IF expr THEN expr [ELSE expr]
+    | '{' {expr} '}'
+    | logical_expr
+id_pat
+    = ID
+a_params
+    = '()' | ID {ID}
+logical_expr
+    = equal_expr {logical_op equal_expr}
+equal_expr
+    = cons_expr [equal_op cons_expr]
+cons_expr
+    = add_expr
+add_expr
+    = mul_expr {add_op mul_expr}
+mul_expr
+    = apply_expr {mul_op apply_expr}
+apply_expr
+    = unary_expr {simple_expr}
+unary_expr
+    = [unary_op] simple_expr
+simple_expr
+    = ID
+    | BOOL_LIT | INT_LIT | CHAR_LIT | STRING_LIT 
+    | '()' | '(' expr ')'
+
+logical_op = '||' | '&&'
+equal_op = '==' | '!=' | '<' | '<=' | '>' | '>='
+add_op = '+' | '-'
+mul_op = '*' | '/'
+unary_op = '!' | '-'
+
+----
+
+program
+    = {decl}
 decl
     = MODULE C_ID
     | IMPORT C_ID [AS C_ID]
@@ -16,10 +56,12 @@ expr
     | '{' {expr} '}'
     | logical_expr
 id_pat
-    = ID
-    | '(' id_pat {',' id_pat} ')'
+    = param
+    | '()' | '(' id_pat {',' id_pat} ')'
 a_params
-    = '()' | ID {ID}
+    = '()' | param {param}
+param
+    = ID | '_'
 params
     = '()' | patterns [WHEN expr]
 patterns
@@ -92,41 +134,11 @@ add_op = '+' | '-'
 mul_op = '*' | '/' | '%'
 unary_op = '!' | '-' | '&' | '*'
 
-module
-import
-as
-let
-rec
-fun
-fn
-if
-then
-else
-match
-when
-mutable
+module import as type let rec fun fn
+if then else match when mutable
+unit bool int char float string
 
-ID
-C_ID
-BOOL_LIT
-INT_LIT
-CHAR_LIT
-STRING_LIT
-+
-*
-%
-/
-.
-,
-;
-- ->
-= ==
-! !=
-< <= <-
-> >=
-: :=
-| ||
-& &&
-[ ] []
-( ) ()
-{ }
+ID C_ID BOOL_LIT INT_LIT CHAR_LIT STRING_LIT
+_ + * % .  , ;
+- -> = == ! != < <= <- > >= : :=
+| || & && [ ] [] ( ) () { } /
