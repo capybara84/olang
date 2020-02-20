@@ -1,44 +1,3 @@
-
-program
-    = {expr}
-expr
-    = LET [REC] id_pat [':' type] '=' expr
-    | FUN ID [':' type} a_params '=' expr
-    | FN params '->' expr
-    | IF expr THEN expr [ELSE expr]
-    | '{' {expr} '}'
-    | logical_expr
-id_pat
-    = ID
-a_params
-    = '()' | ID {ID}
-logical_expr
-    = equal_expr {logical_op equal_expr}
-equal_expr
-    = cons_expr [equal_op cons_expr]
-cons_expr
-    = add_expr
-add_expr
-    = mul_expr {add_op mul_expr}
-mul_expr
-    = apply_expr {mul_op apply_expr}
-apply_expr
-    = unary_expr {simple_expr}
-unary_expr
-    = [unary_op] simple_expr
-simple_expr
-    = ID
-    | BOOL_LIT | INT_LIT | CHAR_LIT | STRING_LIT 
-    | '()' | '(' expr ')'
-
-logical_op = '||' | '&&'
-equal_op = '==' | '!=' | '<' | '<=' | '>' | '>='
-add_op = '+' | '-'
-mul_op = '*' | '/'
-unary_op = '!' | '-'
-
-----
-
 program
     = {decl}
 decl
@@ -118,12 +77,14 @@ apply_expr
 unary_expr
     = [unary_op] simple_expr
 simple_expr
-    = id_expr
+    = id_expr | c_id_expr
     | BOOL_LIT | INT_LIT | CHAR_LIT | STRING_LIT 
     | '()' | '(' expr {',' expr} ')'
     | '[' [expr {',' expr}] ']'
 id_expr
-    = [C_ID {'.' C_ID} '.'] ID {'.' ID} [assign]
+    = ID {'.' ID} [assign]
+c_id_expr
+    = C_ID {'.' C_ID} '.' ID {'.' ID} [assign]
     | C_ID {'.' C_ID} expr
     | C_ID {'.' C_ID} '{' [expr {',' expr}] '}'
 assign

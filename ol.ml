@@ -6,9 +6,9 @@ let rec top_level () =
         flush stdout;
         let scan = Scanner.from_string "STDIN" @@ input_line stdin in
         let rec loop () =
-            let t = Scanner.get_token scan in
-            if t.token <> EOF then begin
-                print_endline @@ token_to_string t.token;
+            let e = Parser.parse scan in
+            if snd e <> Eof then begin
+                print_endline @@ expr_to_string e;
                 loop ()
             end
         in

@@ -94,117 +94,104 @@ let scanner_test verbose =
 
 
 let parser_all_tests = [
-    ("'a'", CharLit 'a');
-    ("\"abc\"", StringLit "abc");
-    ("12", IntLit 12);
+    ("'a'", (1, CharLit 'a'));
+    ("\"abc\"", (1, StringLit "abc"));
+    ("12", (1, IntLit 12));
     ("300 + 12",
-        Binary (BinAdd, IntLit 300, IntLit 12));
+        (1, Binary (BinAdd, (1, IntLit 300), (1, IntLit 12))));
     ("300 * 12 + 3",
-        Binary (BinAdd, Binary (BinMul, IntLit 300, IntLit 12), IntLit 3));
+        (1, Binary (BinAdd,
+            (1, Binary (BinMul, (1, IntLit 300), (1, IntLit 12))), (1, IntLit 3))));
     ("300 * (12 + 3)",
-        Binary (BinMul, IntLit 300,
-                Binary (BinAdd, IntLit 12, IntLit 3)));
+        (1, Binary (BinMul, (1, IntLit 300),
+                (1, Binary (BinAdd, (1, IntLit 12), (1, IntLit 3))))));
     ("1 / 2 < 3 * 4",
-        Binary (BinLT, (Binary (BinDiv, IntLit 1, IntLit 2)),
-                        (Binary (BinMul, IntLit 3, IntLit 4))));
+        (1, Binary (BinLT, (1, (Binary (BinDiv, (1, IntLit 1), (1, IntLit 2)))),
+                        (1, (Binary (BinMul, (1, IntLit 3), (1, IntLit 4)))))));
     ("2 * -(1 + 2)",
-        Binary (BinMul, IntLit 2,
-            (Unary (UMinus, Binary (BinAdd, IntLit 1, IntLit 2)))));
+        (1, Binary (BinMul, (1, IntLit 2),
+            (1, (Unary (UMinus, (1, Binary (BinAdd, (1, IntLit 1), (1, IntLit 2)))))))));
     ("5 % 2",
-        Binary (BinMod, IntLit 5, IntLit 2));
+        (1, Binary (BinMod, (1, IntLit 5), (1, IntLit 2))));
     ("a && b",
-        Binary (BinLand, Ident "a", Ident "b"));
+        (1, Binary (BinLand, (1, Ident "a"), (1, Ident "b"))));
     ("a || b",
-        Binary (BinLor, Ident "a", Ident "b"));
+        (1, Binary (BinLor, (1, Ident "a"), (1, Ident "b"))));
     ("!(x < y)",
-        Unary (UNot, Binary (BinLT, Ident "x", Ident "y")));
+        (1, Unary (UNot, (1, Binary (BinLT, (1, Ident "x"), (1, Ident "y"))))));
     ("1 <= 2",
-        Binary (BinLE, IntLit 1, IntLit 2));
+        (1, Binary (BinLE, (1, IntLit 1), (1, IntLit 2))));
     ("1 > 2",
-        Binary (BinGT, IntLit 1, IntLit 2));
+        (1, Binary (BinGT, (1, IntLit 1), (1, IntLit 2))));
     ("1 >= 2",
-        Binary (BinGE, IntLit 1, IntLit 2));
+        (1, Binary (BinGE, (1, IntLit 1), (1, IntLit 2))));
     ("1 == 2",
-        Binary (BinEql, IntLit 1, IntLit 2));
+        (1, Binary (BinEql, (1, IntLit 1), (1, IntLit 2))));
     ("1 != 2",
-        Binary (BinNeq, IntLit 1, IntLit 2));
+        (1, Binary (BinNeq, (1, IntLit 1), (1, IntLit 2))));
     ("fn x -> x + 1",
-        Fn (Ident "x", Binary (BinAdd, Ident "x", IntLit 1)));
+        (1, Fn ((1, Ident "x"), (1, Binary (BinAdd, (1, Ident "x"), (1, IntLit 1))))));
     ("f 3",
-        Apply (Ident "f", IntLit 3));
+        (1, Apply ((1, Ident "f"), (1, IntLit 3))));
     ("-(f 3)",
-        Unary (UMinus, Apply (Ident "f", IntLit 3)));
+        (1, Unary (UMinus, (1, Apply ((1, Ident "f"), (1, IntLit 3))))));
     ("f (-3)",
-        Apply (Ident "f", Unary (UMinus, IntLit 3)));
+        (1, Apply ((1, Ident "f"), (1, Unary (UMinus, (1, IntLit 3))))));
     ("f -3",
-        Binary (BinSub, Ident "f", IntLit 3));
+        (1, Binary (BinSub, (1, Ident "f"), (1, IntLit 3))));
     ("fn () -> 1",
-        Fn (Unit, IntLit 1));
+        (1, Fn ((1, Unit), (1, IntLit 1))));
     ("(fn x -> x + 1) (300 * (12 + 3))",
-        Apply (Fn (Ident "x", Binary (BinAdd, Ident "x", IntLit 1)), 
-            Binary (BinMul, IntLit 300,
-                Binary (BinAdd, IntLit 12, IntLit 3))));
-    ("let fact = fn n -> if n < 1 then 1 else n * fact (n - 1)",
-            Let ("fact",
-                Fn (Ident "n",
-                    (If (Binary (BinLT, Ident "n", IntLit 1),
-                          IntLit 1,
-                          Binary (BinMul, Ident "n",
-                                        Apply (Ident "fact",
-                                            Binary (BinSub, Ident "n",
-                                                IntLit 1))))))));
+        (1, Apply ((1, Fn ((1, Ident "x"),
+                            (1, Binary (BinAdd, (1, Ident "x"), (1, IntLit 1))))), 
+            (1, Binary (BinMul, (1, IntLit 300),
+                (1, Binary (BinAdd, (1, IntLit 12), (1, IntLit 3))))))));
+    ("let rec fact = fn n -> if n < 1 then 1 else n * fact (n - 1)",
+        (1, LetRec ("fact",
+            (1, Fn ((1, Ident "n"),
+                    (1, If ((1, Binary (BinLT, (1, Ident "n"), (1, IntLit 1))),
+                          (1, IntLit 1),
+                          (1, Binary (BinMul, (1, Ident "n"),
+                                        (1, Apply ((1, Ident "fact"),
+                                            (1, Binary (BinSub, (1, Ident "n"),
+                                                (1, IntLit 1))))))))))))));
     ("{}",
-        Comp []);
+        (1, Comp []));
     ("{1; 2; }",
-        Comp [IntLit 1; IntLit 2]);
+        (1, Comp [(1, IntLit 1); (1, IntLit 2)]));
     ("{1; 2; 3}",
-        Comp [IntLit 1; IntLit 2; IntLit 3]);
-    ("let fact = fn n -> if n < 1 then 1 else n * fact (n - 1)",
-        Let ("fact",
-                Fn (Ident "n",
-                    (If (Binary (BinLT, Ident "n", IntLit 1),
-                          IntLit 1,
-                          Binary (BinMul, Ident "n",
-                                        Apply (Ident "fact",
-                                            Binary (BinSub, Ident "n",
-                                                IntLit 1))))))));
-    ("1+2+3",
-        (Binary (BinAdd,
-            (Binary (BinAdd, IntLit 1, IntLit 2)), IntLit 3)));
+        (1, Comp [(1, IntLit 1); (1, IntLit 2); (1, IntLit 3)]));
     ("f 1 2",
-        Apply (Apply (Ident "f", IntLit 1), IntLit 2));
-    ("f 1 2 3",
-        (Apply (Apply (Apply (Ident "f",
-            IntLit 1), IntLit 2), IntLit 3)));
+        (1, Apply ((1, Apply ((1, Ident "f"), (1, IntLit 1))), (1, IntLit 2))));
     ("1:2:3:[]",
-        (Binary (BinCons, IntLit 1,
-                 (Binary (BinCons, IntLit 2,
-                          (Binary (BinCons, IntLit 3, Null)))))));
+        (1, (Binary (BinCons, (1, IntLit 1),
+                 (1, (Binary (BinCons, (1, IntLit 2),
+                          (1, (Binary (BinCons, (1, IntLit 3), (1, Null)))))))))));
     ("[1,2,3]",
-        (Binary (BinCons, IntLit 1,
-                 (Binary (BinCons, IntLit 2,
-                          (Binary (BinCons, IntLit 3, Null)))))));
-    ("(1)", IntLit 1);
-    ("true", BoolLit true);
-    ("false", BoolLit false);
+        (1, (Binary (BinCons, (1, IntLit 1),
+                 (1, (Binary (BinCons, (1, IntLit 2),
+                          (1, (Binary (BinCons, (1, IntLit 3), (1, Null)))))))))));
+    ("(1)", (1, IntLit 1));
+    ("true", (1, BoolLit true));
+    ("false", (1, BoolLit false));
     ("fun one () = 1",
-        LetRec ("one", (Fn (Unit, IntLit 1))));
+        (1, LetRec ("one", (1, (Fn ((1, Unit), (1, IntLit 1)))))));
     ("fun fact n = if n < 1 then 1 else n * fact (n-1)",
-        LetRec ("fact",
-                Fn (Ident "n",
-                    (If (Binary (BinLT, Ident "n", IntLit 1),
-                          IntLit 1,
-                          Binary (BinMul, Ident "n",
-                                        Apply (Ident "fact",
-                                            Binary (BinSub, Ident "n",
-                                                IntLit 1))))))));
-    ("module List", Module "List");
-    ("import Array", Import ("Array", None));
-    ("import Array as A", Import ("Array", Some "A"));
-    ("Array.length", IdentMod ("Array", (Ident "length")));
-    ("(1)", IntLit 1);
-    ("(1,2)", Tuple [IntLit 1; IntLit 2]);
-    ("(1,2,3)", Tuple [IntLit 1; IntLit 2; IntLit 3]);
+        (1, LetRec ("fact",
+            (1, Fn ((1, Ident "n"),
+                    (1, If ((1, Binary (BinLT, (1, Ident "n"), (1, IntLit 1))),
+                          (1, IntLit 1),
+                          (1, Binary (BinMul, (1, Ident "n"),
+                                        (1, Apply ((1, Ident "fact"),
+                                            (1, Binary (BinSub, (1, Ident "n"),
+                                                (1, IntLit 1))))))))))))));
+    ("module List", (1, Module "List"));
+    ("import Array", (1, Import ("Array", None)));
+    ("import Array as A", (1, Import ("Array", Some "A")));
+    ("Array.length", (1, IdentMod ("Array", (1, Ident "length"))));
+    ("(1)", (1, IntLit 1));
+    ("(1,2)", (1, Tuple [(1, IntLit 1); (1, IntLit 2)]));
+    ("(1,2,3)", (1, Tuple [(1, IntLit 1); (1, IntLit 2); (1, IntLit 3)]));
 ]
 
 let parser_test verbose =

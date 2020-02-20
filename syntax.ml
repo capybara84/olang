@@ -21,15 +21,17 @@ type token_t = {
     col : int;
 }
 
+
 type binop = BinAdd | BinSub | BinMul | BinDiv | BinMod | BinLT | BinLE
         | BinGT | BinGE | BinEql | BinNeq | BinLor | BinLand | BinCons
 
 type unop = UNot | UMinus
 
-type expr =
+type exp =
     | Eof | Unit | Null | WildCard
     | BoolLit of bool | IntLit of int | CharLit of char | FloatLit of float
     | StringLit of string | Ident of ident | IdentMod of ident * expr
+    | Record of expr * ident
     | Tuple of expr list
     | Binary of binop * expr * expr
     | Unary of unop * expr
@@ -45,7 +47,8 @@ type expr =
 *)
     | Module of ident
     | Import of ident * ident option
-
+and
+    expr = int * exp
 
 let token_to_string = function
     | EOF -> "<EOF>" | NEWLINE -> "<NEWLINE>" | ID id -> id | C_ID id -> id
@@ -77,31 +80,32 @@ let string_of_unop = function
     | UMinus -> "-"
 
 let rec expr_to_string = function
-    | Eof -> "<EOF>" | Unit -> "()" | Null -> "[]" | WildCard -> "_"
-    | BoolLit b -> string_of_bool b| IntLit n -> string_of_int n
-    | CharLit c -> "'" ^ String.make 1 c ^ "'" | FloatLit f -> string_of_float f
-    | StringLit s -> "\"" ^ s ^ "\"" | Ident id -> id
-    | IdentMod (id, e) -> id ^ expr_to_string e
-    | Tuple el -> "(" ^ tuple_to_string el ^ ")"
-    | Binary (op, lhs, rhs) -> "(" ^ expr_to_string lhs ^ " " ^ string_of_binop op
+    | (_, Eof) -> "<EOF>" | (_, Unit) -> "()" | (_, Null) -> "[]" | (_, WildCard) -> "_"
+    | (_, BoolLit b) -> string_of_bool b | (_, IntLit n) -> string_of_int n
+    | (_, CharLit c) -> "'" ^ String.make 1 c ^ "'" | (_, FloatLit f) -> string_of_float f
+    | (_, StringLit s) -> "\"" ^ s ^ "\"" | (_, Ident id) -> id
+    | (_, IdentMod (id, e)) -> id ^ "." ^ expr_to_string e
+    | (_, Record (e, id)) -> expr_to_string e ^ "." ^ id
+    | (_, Tuple el) -> "(" ^ tuple_to_string el ^ ")"
+    | (_, Binary (op, lhs, rhs)) -> "(" ^ expr_to_string lhs ^ " " ^ string_of_binop op
         ^ " " ^ expr_to_string rhs ^ ")"
-    | Unary (op, e) -> "(" ^ string_of_unop op ^ expr_to_string e ^ ")"
-    | Let (id, e) -> "(let " ^ id ^ " = " ^ expr_to_string e ^ ")"
-    | LetRec (id, e) -> "(let rec " ^ id ^ " = " ^ expr_to_string e ^ ")"
-    | Fn (e1, e2) -> "(fn " ^ expr_to_string e1 ^ " -> " ^ expr_to_string e2 ^ ")"
-    | Apply (e1, e2) -> "(" ^ expr_to_string e1 ^ " " ^ expr_to_string e2 ^ ")"
-    | If (e1, e2, e3) -> "(if " ^ expr_to_string e1 ^ " then " ^ expr_to_string e2 ^ " else "
-        ^ expr_to_string e3 ^ ")"
-    | Comp el -> "{" ^ comp_to_string el ^ "}"
+    | (_, Unary (op, e)) -> "(" ^ string_of_unop op ^ expr_to_string e ^ ")"
+    | (_, Let (id, e)) -> "(let " ^ id ^ " = " ^ expr_to_string e ^ ")"
+    | (_, LetRec (id, e)) -> "(let rec " ^ id ^ " = " ^ expr_to_string e ^ ")"
+    | (_, Fn (e1, e2)) -> "(fn " ^ expr_to_string e1 ^ " -> " ^ expr_to_string e2 ^ ")"
+    | (_, Apply (e1, e2)) -> "(" ^ expr_to_string e1 ^ " " ^ expr_to_string e2 ^ ")"
+    | (_, If (e1, e2, e3)) -> "(if " ^ expr_to_string e1 ^ " then " ^ expr_to_string e2
+            ^ " else " ^ expr_to_string e3 ^ ")"
+    | (_, Comp el) -> "{" ^ comp_to_string el ^ "}"
 (*
-    | Match (e, lst) -> 
-    | TypeDef _ ->
+    | (_, Match (e, lst)) -> 
+    | (_, TypeDef _) ->
 *)
-    | Module name ->
+    | (_, Module name) ->
         "module " ^ name
-    | Import (name, Some rename) ->
+    | (_, Import (name, Some rename)) ->
         "import " ^ name ^ " as " ^ rename
-    | Import (name, None) ->
+    | (_, Import (name, None)) ->
         "import " ^ name
 and tuple_to_string = function
     | [] -> ""
