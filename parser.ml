@@ -6,6 +6,9 @@ type t = {
     mutable token : token_t;
 }
 
+let get_source_position pars =
+    Scanner.get_source_position pars.scanner
+
 let debug_scope_flag = ref false
 let debug_token_flag = ref false
 let debug_indent = ref 0
@@ -40,6 +43,9 @@ let debug_token msg =
         print_endline msg
 
 
+let error pars msg =
+    raise (Error (get_source_position pars ^ ": " ^ msg))
+
 let new_parser scan = { scanner = scan; token = Scanner.get_token scan }
 
 let peek_token pars = pars.token.token
@@ -48,26 +54,131 @@ let next_token pars =
     pars.token <- Scanner.get_token pars.scanner;
     debug_token @@ "token = " ^ token_to_string @@ peek_token pars
 
+let rec expect pars token =
+    let current_token = peek_token pars in
+    if current_token = token then
+        next_token pars
+    else if current_token = NEWLINE then
+        (next_token pars; expect pars token)
+    else
+        error pars ("missing token '" ^ token_to_string token ^
+                "' at '" ^ token_to_string current_token ^ "'")
+
+let rec expect_id pars =
+    match peek_token pars with
+    | ID id -> next_token pars; id
+    | NEWLINE -> next_token pars; expect_id pars
+    | t -> error pars ("missing identifier at '" ^ token_to_string t ^ "'")
+
+let rec expect_c_id pars =
+    match peek_token pars with
+    | C_ID id -> next_token pars; id
+    | NEWLINE -> next_token pars; expect_c_id pars
+    | t -> error pars ("missing capitalized identifier at '" ^ token_to_string t ^ "'")
+
+let rec skip_newline pars =
+    match peek_token pars with
+    | NEWLINE ->
+        next_token pars; skip_newline pars
+    | _ -> ()
+
 let rec parse_logical pars =
-    Unit
+    next_token pars;
+    Unit    (*TODO*)
 
 and parse_let pars =
-    Unit
+    next_token pars;
+    Unit    (*TODO*)
 
 and parse_fun pars =
-    Unit
+    next_token pars;
+    Unit    (*TODO*)
+
+and parse_param_list pars args =
+    debug_parse_in "parse_param_list";
+    let e =
+        match peek_token pars with
+        | WILDCARD ->
+            next_token pars;
+            parse_param_list pars (WildCard::args)
+        | ID id ->
+            next_token pars;
+            parse_param_list pars (Ident id::args)
+        | _ ->
+            List.rev args
+    in
+    debug_parse_out "parse_param_list";
+    e
+
+and parse_params pars =
+    debug_parse_in "parse_params pars";
+    let e =
+        if peek_token pars = UNIT then
+            (next_token pars; [Unit])
+        else
+            parse_param_list pars []
+    in
+    debug_parse_out "parse_params pars";
+    e
 
 and parse_fn pars =
-    Unit
+    debug_parse_in "parse_fn";
+    next_token pars;
+    skip_newline pars;
+    let args = parse_params pars in
+    expect pars RARROW;
+    skip_newline pars;
+    let e = List.fold_right (fun arg body -> Fn (arg, body)) args (parse_expr pars) in
+    debug_parse_out "parse_fn";
+    e
 
 and parse_if pars =
-    Unit
+    debug_parse_in "parse_if";
+    next_token pars;
+    skip_newline pars;
+    let e1 = parse_expr pars in
+    expect pars THEN;
+    skip_newline pars;
+    let e2 = parse_expr pars in
+    let e3 =
+        if peek_token pars = ELSE then begin
+            next_token pars;
+            skip_newline pars;
+            parse_expr pars
+        end else Unit
+    in
+    debug_parse_out "parse_if";
+    If (e1, e2, e3)
 
 and parse_match pars =
-    Unit
+    next_token pars;
+    Unit    (*TODO*)
+
+and parse_expr_list pars =
+    debug_parse_in "parse_expr_list";
+    let rec loop () =
+        match peek_token pars with
+            | EOF | RBRACE -> []
+            | _ ->
+                begin
+                    let e = parse_expr pars in
+                    skip_newline pars;
+                    e::(loop ())
+                end
+    in
+    let e = loop () in
+    debug_parse_in "parse_expr_list";
+    e
 
 and parse_compound pars =
-    Unit
+    debug_parse_in "parse_compound";
+    next_token pars;
+    skip_newline pars;
+    let e = parse_expr_list pars in
+    expect pars RBRACE;
+    skip_newline pars;
+    debug_parse_out "parse_compound";
+    Comp e
 
 and parse_expr pars =
     debug_parse_in "parse_expr";

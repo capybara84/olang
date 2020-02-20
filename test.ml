@@ -75,7 +75,7 @@ let scanner_test_tokens = [
 let scanner_test verbose =
     print_string "Scanner Test:";
     (try
-        let tokens = Scanner.get_tokens @@ Scanner.from_string scanner_test_text in
+        let tokens = Scanner.get_tokens @@ Scanner.from_string "TEST" scanner_test_text in
         let len_tt = List.length scanner_test_tokens in
         let len_t = List.length tokens in
         test_eq len_tt len_t ("length " ^ string_of_int len_tt ^ " != " ^ string_of_int len_t);
@@ -88,7 +88,8 @@ let scanner_test verbose =
                 (Printf.sprintf "(%d:%d,'%s') != (%d:%d,'%s')" c n (token_to_string tt)
                                     t.col t.line (token_to_string t.token)))
             scanner_test_tokens tokens
-    with Invalid_argument s -> test_fail @@ "Invalid_argument " ^ s);
+    with Invalid_argument s -> test_fail @@ "Invalid_argument " ^ s
+        | Error s -> test_fail s);
     print_newline ()
 
 
@@ -213,7 +214,7 @@ let parser_test verbose =
             if verbose then 
                 print_endline ("text    > " ^ text)
             else ();
-            let expr = Parser.parse @@ Scanner.from_string text in
+            let expr = Parser.parse @@ Scanner.from_string "TEST" text in
             let parsed = expr_to_string expr in
             let expected = expr_to_string expected in
             if verbose then begin

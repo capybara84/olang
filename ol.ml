@@ -4,7 +4,7 @@ let rec top_level () =
     try
         print_string "> ";
         flush stdout;
-        let scan = Scanner.from_string @@ input_line stdin in
+        let scan = Scanner.from_string "STDIN" @@ input_line stdin in
         let rec loop () =
             let t = Scanner.get_token scan in
             if t.token <> EOF then begin

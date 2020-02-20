@@ -2,6 +2,7 @@
 open Syntax
 
 type t = {
+    filename : string;
     source : string;
     len : int;
     mutable pos : int;
@@ -9,6 +10,14 @@ type t = {
     mutable line : int;
     mutable col : int;
 }
+
+let get_line scan = scan.line
+
+let get_source_position scan =
+    Printf.sprintf "%s:%d:%d" scan.filename scan.col scan.line
+
+let error scan msg =
+    raise (Error (get_source_position scan ^ ": " ^ msg))
 
 let is_end scan =
     scan.pos = scan.len
@@ -76,10 +85,10 @@ let get_char scan =
             | Some 'r' -> '\r'
             | Some 't' -> '\t'
             | Some ch -> ch
-            | None -> raise (Error "unexpected EOF");
+            | None -> error scan "unexpected EOF";
         end
     | Some ch -> ch
-    | None -> raise (Error "unexpected EoF")
+    | None -> error scan "unexpected EoF"
 
 let scan_char scan =
     let is_alpha = function 'a'..'z' -> true | _ -> false in
@@ -97,8 +106,8 @@ let scan_char scan =
         | Some '\'' ->
             next_char scan;
             CHAR_LIT c
-        | Some _ -> raise (Error "missing single-quote")
-        | None -> raise (Error "Unexpected EOF")
+        | Some _ -> error scan "missing single-quote"
+        | None -> error scan "Unexpected EOF"
 
 let scan_string scan =
     next_char scan;
@@ -108,7 +117,7 @@ let scan_string scan =
         | Some '"' ->
             next_char scan
         | None ->
-            raise (Error "unexpected eof")
+            error scan "unexpected eof"
         | _ ->
             begin
                 let c = get_char scan in
@@ -221,7 +230,7 @@ let rec scan_token scan =
     | Some c ->
         begin
             next_char scan;
-            raise (Error ("illegal character '" ^ String.make 1 c ^ "'"))
+            error scan ("illegal character '" ^ String.make 1 c ^ "'")
         end
 
 let get_token scan =
@@ -237,6 +246,6 @@ let get_tokens scan =
     in 
     List.rev (loop [])
 
-let from_string s =
-    { source = s; len = String.length s; pos = 0; cur_col = 0; line = 1; col = 0 }
+let from_string name s =
+    { filename = name; source = s; len = String.length s; pos = 0; cur_col = 0; line = 1; col = 0 }
 
