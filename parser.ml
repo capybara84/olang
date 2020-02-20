@@ -13,20 +13,20 @@ let peek_token pars = pars.token.token
 let next_token pars = pars.token <- Scanner.get_token pars.scanner
 
 let parse_expr pars =
-    ()
+    Unit
 
 let parse_type_def pars =
-    ()
+    Unit
 
 let parse_module pars =
-    ()
+    Module "@"
 
 let parse_import pars =
-    ()
+    Import ("@", None)
 
 let rec parse_program pars =
     match peek_token pars with
-    | EOF -> ()
+    | EOF -> Eof
     | NEWLINE | SEMI -> next_token pars; parse_program pars
     | MODULE -> parse_module pars
     | IMPORT -> parse_import pars

@@ -65,3 +65,49 @@ let token_to_string = function
     | NULL -> "[]" | LPAR -> "(" | RPAR -> ")" | UNIT -> "()" | LBRACE -> "{"
     | RBRACE -> "}" | SLASH -> "/"
 
+let string_of_binop = function
+    | BinAdd -> "+" | BinSub -> "-" | BinMul -> "*"
+    | BinDiv -> "/" | BinMod -> "%" | BinLT -> "<"
+    | BinLE -> "<=" | BinGT -> ">" | BinGE -> ">="
+    | BinEql -> "==" | BinNeq -> "!=" | BinLor -> "||"
+    | BinLand -> "&&" | BinCons -> ":"
+
+let string_of_unop = function
+    | UNot -> "!"
+    | UMinus -> "-"
+
+let rec expr_to_string = function
+    | Eof -> "<EOF>" | Unit -> "()" | Null -> "[]" | WildCard -> "_"
+    | BoolLit b -> string_of_bool b| IntLit n -> string_of_int n
+    | CharLit c -> "'" ^ String.make 1 c ^ "'" | FloatLit f -> string_of_float f
+    | StringLit s -> "\"" ^ s ^ "\"" | Ident id -> id
+    | IdentMod (id, e) -> id ^ expr_to_string e
+    | Tuple el -> "(" ^ tuple_to_string el ^ ")"
+    | Binary (op, lhs, rhs) -> "(" ^ expr_to_string lhs ^ " " ^ string_of_binop op
+        ^ " " ^ expr_to_string rhs ^ ")"
+    | Unary (op, e) -> "(" ^ string_of_unop op ^ expr_to_string e ^ ")"
+    | Let (id, e) -> "(let " ^ id ^ " = " ^ expr_to_string e ^ ")"
+    | LetRec (id, e) -> "(let rec " ^ id ^ " = " ^ expr_to_string e ^ ")"
+    | Fn (e1, e2) -> "(fn " ^ expr_to_string e1 ^ " -> " ^ expr_to_string e2 ^ ")"
+    | Apply (e1, e2) -> "(" ^ expr_to_string e1 ^ " " ^ expr_to_string e2 ^ ")"
+    | If (e1, e2, e3) -> "(if " ^ expr_to_string e1 ^ " then " ^ expr_to_string e2 ^ " else "
+        ^ expr_to_string e3 ^ ")"
+    | Comp el -> "{" ^ comp_to_string el ^ "}"
+(*
+    | Match (e, lst) -> 
+    | TypeDef _ ->
+*)
+    | Module name ->
+        "module " ^ name
+    | Import (name, Some rename) ->
+        "import " ^ name ^ " as " ^ rename
+    | Import (name, None) ->
+        "import " ^ name
+and tuple_to_string = function
+    | [] -> ""
+    | x::[] -> expr_to_string x
+    | x::xs -> expr_to_string x ^ ", " ^ tuple_to_string xs
+and comp_to_string = function
+    | [] -> ""
+    | x::xs -> expr_to_string x ^ "; " ^ comp_to_string xs
+
