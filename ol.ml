@@ -26,6 +26,8 @@ let main () =
         [
             ("-v", Arg.Unit (fun () -> g_verbose := true), " verbose");
             ("-t", Arg.Unit (fun () -> do_test := true),   " test");
+            ("-dps", Arg.Unit (fun () -> Parser.debug_scope_flag := true), " parser scope debug");
+            ("-dpt", Arg.Unit (fun () -> Parser.debug_token_flag := true), " parser token debug");
         ]
         (fun name -> filenames := name :: !filenames)
         "usage: ol [-v][-t] filename...";
