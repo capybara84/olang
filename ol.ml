@@ -36,10 +36,11 @@ let main () =
         ]
         (fun name -> filenames := name :: !filenames)
         "usage: ol [-v][-t] filename...";
+    let env = Builtins.init () in
     if !do_test then
-        Test.test()
+        Test.test env
     else if List.length !filenames = 0 then
-        top_level []
+        top_level env
 
 let () =
     main ()
