@@ -4,11 +4,11 @@ let rec top_level () =
     try
         print_string "> ";
         flush stdout;
-        let scan = Scanner.from_string @@ input_line stdin in
+        let scan = Scanner.from_string "STDIN" @@ input_line stdin in
         let rec loop () =
-            let t = Scanner.get_token scan in
-            if t.token <> EOF then begin
-                print_endline @@ token_to_string t.token;
+            let e = Parser.parse scan in
+            if snd e <> Eof then begin
+                print_endline @@ expr_to_string e;
                 loop ()
             end
         in
@@ -26,6 +26,8 @@ let main () =
         [
             ("-v", Arg.Unit (fun () -> g_verbose := true), " verbose");
             ("-t", Arg.Unit (fun () -> do_test := true),   " test");
+            ("-dps", Arg.Unit (fun () -> Parser.debug_scope_flag := true), " parser scope debug");
+            ("-dpt", Arg.Unit (fun () -> Parser.debug_token_flag := true), " parser token debug");
         ]
         (fun name -> filenames := name :: !filenames)
         "usage: ol [-v][-t] filename...";
