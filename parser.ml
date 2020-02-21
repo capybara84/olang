@@ -468,6 +468,7 @@ and parse_if pars =
     expect pars THEN;
     skip_newline pars;
     let e2 = parse_expr pars in
+    skip_newline pars;
     let e3 =
         if peek_token pars = ELSE then begin
             next_token pars;

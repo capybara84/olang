@@ -24,6 +24,31 @@ let rec top_level env =
         | Sys_error s -> print_endline s
         | End_of_file -> ()
 
+let load_file filename =
+    let ic = open_in filename in
+    let n = in_channel_length ic in
+    let text = really_input_string ic n in
+    close_in ic;
+    text
+
+let load_source env filename =
+    try
+        let text = load_file filename in
+        let scan = Scanner.from_string filename text in
+        let rec loop env =
+            let e = Parser.parse scan in
+            match e with
+            | (_, Eof) -> env
+            | _ ->
+                let (new_env, v) = Eval.eval_decl env e in
+                if v <> VUnit then
+                    print_endline "Warning: The expression should have type unit";
+                loop new_env
+        in loop env
+    with
+        | Error s | Sys_error s -> print_endline s; env
+        | End_of_file -> env
+
 let main () =
     let filenames = ref [] in
     let do_test = ref false in
@@ -36,11 +61,12 @@ let main () =
         ]
         (fun name -> filenames := name :: !filenames)
         "usage: ol [-v][-t] filename...";
-    let env = Builtins.init () in
+    let env = ref (Builtins.init ()) in
+    List.iter (fun name -> env := load_source !env name) (List.rev !filenames);
     if !do_test then
-        Test.test env
+        Test.test !env
     else if List.length !filenames = 0 then
-        top_level env
+        top_level !env
 
 let () =
     main ()
