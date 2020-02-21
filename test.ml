@@ -18,7 +18,6 @@ let test_ok () =
 
 let test_fail s =
     incr n_fail;
-    print_newline ();
     print_endline @@ red "!" ^ s
 
 let test_eq a b m =
@@ -214,8 +213,40 @@ let parser_test verbose =
     List.iter do_parse parser_all_tests;
     print_newline ()
 
+let eval_all_tests = [
+    ("12", VInt 12);
+    ("'a'", VChar 'a');
+    ("\"abc\"", VString "abc");
+    ("300 + 12", VInt 312);
+    ("300 * 12 + 3", VInt 3603);
+    ("300 * (12 + 3)", VInt 4500);
+    ("300 / (12 - 3)", VInt 33);
+    ("300 % (12 - 3)", VInt 3);
+]
+
+let eval_test verbose =
+    print_string "Eval Test:";
+    let do_eval (text, expected) =
+        try
+            if verbose then
+                print_endline ("text> " ^ text)
+            else ();
+            let expr = Parser.parse @@ Scanner.from_string "TEST" text in
+            let (_, v) = Eval.eval_decl [] expr in
+            if verbose then begin
+                print_endline ("evaluated> " ^ value_to_string v);
+                print_endline ("expected > " ^ value_to_string expected)
+            end;
+            test_eq v expected
+                ("text: " ^ text ^ ", result: " ^ value_to_string v ^ " != " ^ value_to_string expected)
+        with Error s -> test_fail s
+    in
+    List.iter do_eval eval_all_tests;
+    print_newline ()
+
 let test () =
     scanner_test !g_verbose;
     parser_test !g_verbose;
+    eval_test !g_verbose;
     test_report ()
 
