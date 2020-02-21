@@ -27,6 +27,12 @@ type binop = BinAdd | BinSub | BinMul | BinDiv | BinMod | BinLT | BinLE
 
 type unop = UNot | UMinus
 
+type pattern =
+    | PatNull | PatWildCard | PatBool of bool | PatInt of int | PatChar of char
+    | PatFloat of float | PatString of string
+    | PatIdent of ident | PatTuple of pattern list | PatCons of pattern * pattern
+    | PatAs of pattern * ident | PatOr of pattern * pattern
+
 type exp =
     | Eof | Unit | Null | WildCard
     | BoolLit of bool | IntLit of int | CharLit of char | FloatLit of float
@@ -41,8 +47,8 @@ type exp =
     | Apply of expr * expr
     | If of expr * expr * expr
     | Comp of expr list
-(*
     | Match of expr * (pattern * expr) list
+(*
     | TypeDef of int option * ident * typ
 *)
     | Module of ident
@@ -107,8 +113,8 @@ let rec expr_to_string = function
     | (_, If (e1, e2, e3)) -> "(if " ^ expr_to_string e1 ^ " then " ^ expr_to_string e2
             ^ " else " ^ expr_to_string e3 ^ ")"
     | (_, Comp el) -> "{" ^ comp_to_string el ^ "}"
+    | (_, Match (e, lst)) ->  "(match " ^ expr_to_string e ^ " {" ^ match_list_to_string lst ^ "})"
 (*
-    | (_, Match (e, lst)) -> 
     | (_, TypeDef _) ->
 *)
     | (_, Module name) ->
@@ -124,6 +130,27 @@ and tuple_to_string = function
 and comp_to_string = function
     | [] -> ""
     | x::xs -> expr_to_string x ^ "; " ^ comp_to_string xs
+and match_list_to_string = function
+    | [] -> ""
+    | (pat, e) :: rest ->
+        " | " ^ pattern_to_string pat ^ " -> " ^ expr_to_string e ^ match_list_to_string rest
+and pattern_to_string = function
+    | PatNull -> "[]"
+    | PatWildCard -> "_"
+    | PatBool b -> string_of_bool b
+    | PatInt n -> string_of_int n
+    | PatChar c -> "'" ^ String.make 1 c ^ "'"
+    | PatFloat f -> string_of_float f
+    | PatString s -> "\"" ^ s ^ "\""
+    | PatIdent id -> id
+    | PatTuple pl -> "(" ^ pat_list_to_string pl ^ ")"
+    | PatCons (p1, p2) -> pattern_to_string p1 ^ ":" ^ pattern_to_string p2
+    | PatAs (pat, id) -> "(" ^ pattern_to_string pat ^ ") as " ^ id
+    | PatOr (p1, p2) -> pattern_to_string p1 ^ " | " ^ pattern_to_string p2
+and pat_list_to_string = function
+    | [] -> ""
+    | x::[] -> pattern_to_string x
+    | x::xs -> pattern_to_string x ^ ", " ^ pat_list_to_string xs
 
 let rec value_to_string = function
     | VUnit -> "()"
