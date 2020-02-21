@@ -50,6 +50,13 @@ type exp =
 and
     expr = int * exp
 
+type value =
+    | VUnit | VNull | VBool of bool | VInt of int | VChar of char | VFloat of float
+    | VString of string | VTuple of value list | VCons of value * value
+    | VClosure of expr * expr * (value ref) Env.t
+    | VBuiltin of (value -> value)
+
+
 let token_to_string = function
     | EOF -> "<EOF>" | NEWLINE -> "<NEWLINE>" | ID id -> id | C_ID id -> id
     | BOOL_LIT b -> string_of_bool b | INT_LIT n -> string_of_int n
@@ -114,4 +121,31 @@ and tuple_to_string = function
 and comp_to_string = function
     | [] -> ""
     | x::xs -> expr_to_string x ^ "; " ^ comp_to_string xs
+
+let rec value_to_string = function
+    | VUnit -> "()"
+    | VNull -> "[]"
+    | VBool b -> string_of_bool b
+    | VInt n -> string_of_int n
+    | VChar c -> String.make 1 c
+    | VFloat f -> string_of_float f
+    | VString s -> s
+    | VTuple vl -> "(" ^ vlist_to_string vl ^ ")"
+    | VCons (_, VCons _) as e -> "[" ^ vcons_to_string e ^ "]"
+    | VCons (x, VNull) -> "[" ^ value_to_string x ^ "]"
+    | VCons (x, xs) -> value_to_string x ^ ":" ^ value_to_string xs
+    | VClosure _ -> "<closure>"
+    | VBuiltin _ -> "<builtin>"
+and vlist_to_string = function
+    | [] -> ""
+    | x::[] -> value_to_string x
+    | x::xs -> value_to_string x ^ ", " ^ vlist_to_string xs
+and vcons_to_string = function
+    | VCons (lhs, rhs) ->
+        begin match rhs with
+        | VNull -> value_to_string lhs
+        | VCons _ -> value_to_string lhs ^ ", " ^ vcons_to_string rhs
+        | _ -> failwith "cons rhs bug"
+        end
+    | _ -> failwith "cons bug"
 
