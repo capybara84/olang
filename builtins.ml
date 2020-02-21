@@ -41,6 +41,10 @@ let fn_second = function
     | VTuple (_::x::_) -> x
     | _ -> type_error "tuple"
 
+let fn_env _ =
+    print_endline "Env";
+    VUnit
+
 let builtin_list =
     [
         ("true", VBool true);
@@ -54,13 +58,9 @@ let builtin_list =
         ("tl", VBuiltin fn_tail);
         ("fst", VBuiltin fn_first);
         ("snd", VBuiltin fn_second);
+        ("env", VBuiltin fn_env);
     ]
 
 let init () =
-    let rec install env = function
-        | [] -> env
-        | (name, value)::xs ->
-            install (Env.extend name (ref value) env) xs
-    in
-    install [] builtin_list
+    List.iter (fun (name, value) -> Symbol.insert_default name value) builtin_list
 
