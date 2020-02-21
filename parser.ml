@@ -487,6 +487,10 @@ and parse_expr_list pars =
     let rec loop () =
         match peek_token pars with
             | EOF | RBRACE -> []
+            | SEMI ->
+                next_token pars;
+                if peek_token pars = RBRACE then []
+                else loop ()
             | _ ->
                 begin
                     let e = parse_expr pars in
