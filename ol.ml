@@ -1,21 +1,26 @@
 open Syntax
 
-let rec top_level () =
+let rec top_level env =
     try
         print_string "> ";
         flush stdout;
         let scan = Scanner.from_string "STDIN" @@ input_line stdin in
-        let rec loop () =
+        let rec loop env =
             let e = Parser.parse scan in
-            if snd e <> Eof then begin
-                print_endline @@ expr_to_string e;
-                loop ()
+            if snd e = Eof then
+                env 
+            else begin
+                if !g_verbose then
+                    print_endline @@ expr_to_string e;
+                let (env, v) = Eval.eval_decl env e in
+                print_endline @@ value_to_string v;
+                loop env
             end
         in
-        loop ();
-        top_level ()
+        let env = loop env in
+        top_level env 
     with
-        | Error s -> (print_endline s; top_level ())
+        | Error s -> (print_endline s; top_level env)
         | Sys_error s -> print_endline s
         | End_of_file -> ()
 
@@ -34,7 +39,7 @@ let main () =
     if !do_test then
         Test.test()
     else if List.length !filenames = 0 then
-        top_level ()
+        top_level []
 
 let () =
     main ()

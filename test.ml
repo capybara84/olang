@@ -222,6 +222,43 @@ let eval_all_tests = [
     ("300 * (12 + 3)", VInt 4500);
     ("300 / (12 - 3)", VInt 33);
     ("300 % (12 - 3)", VInt 3);
+    ("1 < 2", VBool true);
+    ("1 <= 1", VBool true);
+    ("1 > 2", VBool false);
+    ("2 >= 2", VBool true);
+    ("2 == 2", VBool true);
+    ("2 == 1", VBool false);
+    ("2 != 1", VBool true);
+    ("2 != 2", VBool false);
+    ("'a' == 'a'", VBool true);
+    ("'a' == 'b'", VBool false);
+    ("'a' != 'a'", VBool false);
+    ("'a' != 'b'", VBool true);
+    ("'a' < 'b'", VBool true);
+    ("'b' < 'a'", VBool false);
+    ("'a' <= 'a'", VBool true);
+    ("'b' <= 'a'", VBool false);
+    ("'a' > 'b'", VBool false);
+    ("'b' > 'a'", VBool true);
+    ("'a' >= 'b'", VBool false);
+    ("'a' >= 'a'", VBool true);
+    ("\"abc\" + \"def\"", VString "abcdef");
+    ("\"abc\" == \"abc\"", VBool true);
+    ("\"abc\" == \"def\"", VBool false);
+    ("\"abc\" != \"abc\"", VBool false);
+    ("\"abc\" != \"def\"", VBool true);
+    ("\"abc\" < \"def\"", VBool true);
+    ("\"abc\" > \"def\"", VBool false);
+    ("1 > 2 || 2 > 1", VBool true);
+    ("1 < 2 && 2 < 1", VBool false);
+    ("-5", VInt (-5));
+    ("!true", VBool false);
+    ("!false", VBool true);
+    ("1:[2,3]", VCons (VInt 1, VCons (VInt 2, VCons (VInt 3, VNull))));
+    ("1:2:[3]", VCons (VInt 1, VCons (VInt 2, VCons (VInt 3, VNull))));
+    ("[1,2,3]", VCons (VInt 1, VCons (VInt 2, VCons (VInt 3, VNull))));
+    ("[1,2,3] == 1:[2,3]", VBool true);
+    ("[1,2,3] == 1:[2,3,4]", VBool false);
 ]
 
 let eval_test verbose =
