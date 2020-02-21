@@ -24,30 +24,6 @@ let rec top_level () =
         | Sys_error s -> print_endline s
         | End_of_file -> ()
 
-let load_file filename =
-    let ic = open_in filename in
-    let n = in_channel_length ic in
-    let text = really_input_string ic n in
-    close_in ic;
-    text
-
-let load_source filename =
-    try
-        let text = load_file filename in
-        let scan = Scanner.from_string filename text in
-        let rec loop () =
-            let e = Parser.parse scan in
-            match e with
-            | (_, Eof) -> ()
-            | _ ->
-                let v = Eval.eval_top e in
-                if v <> VUnit then
-                    print_endline "Warning: The expression should have type unit";
-                loop ()
-        in loop ()
-    with
-        | Error s | Sys_error s -> print_endline s
-        | End_of_file -> ()
 
 let main () =
     let filenames = ref [] in
@@ -63,7 +39,7 @@ let main () =
         "usage: ol [-v][-t] filename...";
     Symbol.set_default_module ();
     Builtins.init ();
-    List.iter load_source (List.rev !filenames);
+    List.iter Eval.load_source (List.rev !filenames);
     if !do_test then
         Test.test ()
     else if List.length !filenames = 0 then

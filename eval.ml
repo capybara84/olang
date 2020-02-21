@@ -3,6 +3,18 @@ open Syntax
 
 let error n msg = raise (Error (string_of_int n ^ ": Runtime Error: " ^ msg))
 
+let default_directory = "./"
+let default_extension = ".ol"
+
+let make_module_filename name =
+    default_directory ^ String.uncapitalize name ^ default_extension
+
+let load_file filename =
+    let ic = open_in filename in
+    let n = in_channel_length ic in
+    let text = really_input_string ic n in
+    close_in ic;
+    text
 
 let eval_unary n = function
     | (UMinus, VInt i) -> VInt (-i)
@@ -83,14 +95,14 @@ let rec eval env (n, e) =
         (try
             !(Env.lookup id env)
         with Not_found ->
-            error n ("'" ^ id ^ "' not found"))
-        (*
             (try
-                !(lookup_default id)
+                !(Symbol.lookup_default id)
             with Not_found -> error n ("'" ^ id ^ "' not found")))
-        *)
     | IdentMod (id, e) ->
-        VUnit (*TODO*)
+        (try
+            let tab = Symbol.lookup_module id in
+            eval tab.env e
+        with Not_found -> error n ("'" ^ id ^ "' not found"))
     | Record (e, id) ->
         VUnit (*TODO*)
     | Tuple el ->
@@ -162,16 +174,50 @@ and eval_decl env x =
         r := eval new_env e;
         (new_env, VUnit)
     | (_, Module id) ->
-        (env, VUnit) (*TODO*)
+        let tab = Symbol.set_module id in
+        (tab.env, VUnit)
     | (_, Import (id, None)) ->
-        (env, VUnit) (*TODO*)
+        import id;
+        (env, VUnit)
     | (_, Import (id, Some aid)) ->
-        (env, VUnit) (*TODO*)
+        import id;
+        Symbol.rename_module id aid;
+        (env, VUnit)
     | e ->
         (env, eval env e)
 
-let eval_top e =
+and import id =
+    if Symbol.exist_module id then
+        ()
+    else begin
+        let filename = make_module_filename id in
+        let prev = Symbol.get_current_module () in
+        ignore (Symbol.set_module id);
+        (try
+            load_source filename
+        with Error s | Sys_error s -> print_endline s);
+        Symbol.set_current_module prev
+    end
+
+and load_source filename =
+    try
+        let text = load_file filename in
+        let scan = Scanner.from_string filename text in
+        let rec loop () =
+            let e = Parser.parse scan in
+            match e with
+            | (_, Eof) -> ()
+            | _ ->
+                let v = eval_top e in
+                if v <> VUnit then
+                    print_endline "Warning: The expression should have type unit";
+                loop ()
+        in loop ()
+    with Error s | Sys_error s -> print_endline s
+
+and eval_top e =
     let (env, v) = eval_decl (Symbol.get_current_env ()) e in
     Symbol.set_current_env env;
     v
+
 
