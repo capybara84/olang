@@ -14,7 +14,7 @@ type t = {
 let get_line scan = scan.line
 
 let get_source_position scan =
-    Printf.sprintf "%s:%d:%d" scan.filename scan.col scan.line
+    Printf.sprintf "%s, line %d, col %d" scan.filename scan.line scan.col
 
 let error scan msg =
     raise (Error (get_source_position scan ^ ": " ^ msg))
@@ -247,5 +247,5 @@ let get_tokens scan =
     List.rev (loop [])
 
 let from_string name s =
-    { filename = name; source = s; len = String.length s; pos = 0; cur_col = 0; line = 1; col = 0 }
+    { filename = name; source = s; len = String.length s; pos = 0; cur_col = 1; line = 1; col = 1 }
 

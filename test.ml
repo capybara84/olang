@@ -278,7 +278,8 @@ let eval_all_tests = [
     ("foo 4", VInt 6);
     ("fun fact n = if n < 1 then 1 else n * fact (n-1)", VUnit);
     ("fact 5", VInt 120);
-(*
+    ("fst (1,2)", VInt 1);
+    ("snd (1,2)", VInt 2);
     ("module A", VUnit);
     ("let x = 1", VUnit);
     ("module B", VUnit);
@@ -286,14 +287,11 @@ let eval_all_tests = [
     ("module Main", VUnit);
     ("A.x", VInt 1);
     ("B.x", VInt 2);
+(*
     ("import List", VUnit);
     ("List.length [1,2,3]", VInt 3);
     ("import List as L", VUnit);
     ("L.length [1,2,3,4]", VInt 4);
-*)
-(*
-    ("fst (1,2)", VInt 1);
-    ("snd (1,2)", VInt 2);
 *)
 (*
     ("(fn n -> match n { 0 -> 'a' | 1 -> 'b' | 2 -> 'c' }) 1", VChar 'b');
@@ -313,17 +311,16 @@ let eval_all_tests = [
 *)
 ]
 
-let eval_test verbose env =
+let eval_test verbose =
     print_string "Eval Test:";
-    let env = ref env in
     let do_eval (text, expected) =
         try
             if verbose then
                 print_endline ("text> " ^ text)
             else ();
             let expr = Parser.parse @@ Scanner.from_string "TEST" text in
-            let (new_env, v) = Eval.eval_decl !env expr in
-            env := new_env;
+            let (new_env, v) = Eval.eval_decl (Symbol.get_current_env ()) expr in
+            Symbol.set_current_env new_env;
             if verbose then begin
                 print_endline ("evaluated> " ^ value_to_string v);
                 print_endline ("expected > " ^ value_to_string expected)
@@ -335,9 +332,9 @@ let eval_test verbose env =
     List.iter do_eval eval_all_tests;
     print_newline ()
 
-let test env =
+let test () =
     scanner_test !g_verbose;
     parser_test !g_verbose;
-    eval_test !g_verbose env;
+    eval_test !g_verbose;
     test_report ()
 

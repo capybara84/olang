@@ -149,6 +149,9 @@ and eval_list env el =
 and eval_decl env x =
     if !g_verbose then print_endline @@ "eval_decl: " ^ expr_to_string x;
     match x with
+    | (_, Ident "env") ->
+        Symbol.show_all_modules ();
+        (env, VUnit)
     | (_, Let (id, e)) ->
         let v = eval env e in
         let new_env = Env.extend id (ref v) env in
@@ -166,4 +169,9 @@ and eval_decl env x =
         (env, VUnit) (*TODO*)
     | e ->
         (env, eval env e)
+
+let eval_top e =
+    let (env, v) = eval_decl (Symbol.get_current_env ()) e in
+    Symbol.set_current_env env;
+    v
 

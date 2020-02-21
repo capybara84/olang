@@ -1,6 +1,6 @@
 open Syntax
 
-let rec top_level env =
+let rec top_level () =
     try
         print_string "> ";
         flush stdout;
@@ -8,19 +8,19 @@ let rec top_level env =
         let rec loop env =
             let e = Parser.parse scan in
             if snd e = Eof then
-                env 
+                () 
             else begin
                 if !g_verbose then
                     print_endline @@ expr_to_string e;
-                let (env, v) = Eval.eval_decl env e in
+                let v = Eval.eval_top e in
                 print_endline @@ value_to_string v;
-                loop env
+                loop ()
             end
         in
-        let env = loop env in
-        top_level env 
+        loop ();
+        top_level () 
     with
-        | Error s -> (print_endline s; top_level env)
+        | Error s -> print_endline s; top_level ()
         | Sys_error s -> print_endline s
         | End_of_file -> ()
 
@@ -31,23 +31,23 @@ let load_file filename =
     close_in ic;
     text
 
-let load_source env filename =
+let load_source filename =
     try
         let text = load_file filename in
         let scan = Scanner.from_string filename text in
-        let rec loop env =
+        let rec loop () =
             let e = Parser.parse scan in
             match e with
-            | (_, Eof) -> env
+            | (_, Eof) -> ()
             | _ ->
-                let (new_env, v) = Eval.eval_decl env e in
+                let v = Eval.eval_top e in
                 if v <> VUnit then
                     print_endline "Warning: The expression should have type unit";
-                loop new_env
-        in loop env
+                loop ()
+        in loop ()
     with
-        | Error s | Sys_error s -> print_endline s; env
-        | End_of_file -> env
+        | Error s | Sys_error s -> print_endline s
+        | End_of_file -> ()
 
 let main () =
     let filenames = ref [] in
@@ -61,12 +61,13 @@ let main () =
         ]
         (fun name -> filenames := name :: !filenames)
         "usage: ol [-v][-t] filename...";
-    let env = ref (Builtins.init ()) in
-    List.iter (fun name -> env := load_source !env name) (List.rev !filenames);
+    Symbol.set_default_module ();
+    Builtins.init ();
+    List.iter load_source (List.rev !filenames);
     if !do_test then
-        Test.test !env
+        Test.test ()
     else if List.length !filenames = 0 then
-        top_level !env
+        top_level ()
 
 let () =
     main ()
