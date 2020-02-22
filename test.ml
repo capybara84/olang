@@ -42,7 +42,7 @@ let scanner_test_text = "
 
 /*  6 */ identifier Ident 12345
 /*  7 */ 'a' '\\t' \"abc\\n\" 'b
-/*  8 */ module import as type
+/*  8 */ module import as decl type and
 
 // comment
 
@@ -58,14 +58,15 @@ let scanner_test_tokens = [
     (1,2,NEWLINE); (1,6,NEWLINE);
     (10,6, ID "identifier"); (21,6, C_ID "Ident"); (27,6, INT_LIT 12345); (1,7, NEWLINE);
     (10,7, CHAR_LIT 'a'); (14,7, CHAR_LIT '\t'); (19,7, STRING_LIT "abc\n"); (27,7, TVAR 1); (1,8, NEWLINE);
-    (10,8, MODULE); (17,8, IMPORT); (24,8, AS); (27,8, TYPE); (1,10, NEWLINE); (1,12, NEWLINE);
+    (10,8, MODULE); (17,8, IMPORT); (24,8, AS); (27,8, DECL); (32,8, TYPE); (37,8, AND);
+    (1,10, NEWLINE); (1,12, NEWLINE);
     (10,12, LET); (14,12, REC); (18,12, FUN); (22,12, FN); (25,12, IF); (28,12, THEN); (1,13, NEWLINE);
     (10,13, ELSE); (15,13, MATCH); (21,13, WHEN); (26,13, MUTABLE); (1,14, NEWLINE);
     (10,14, WILDCARD); (12,14, PLUS); (14,14, STAR); (16,14, PERCENT); (18,14, COMMA);
     (20,14, SEMI); (22,14, DOT); (24,14, RANGE); (1,15, NEWLINE);
     (10,15, MINUS); (12,15, RARROW); (15,15, EQ); (17,15, EQL); (20,15, NOT); (22,15, NEQ);
     (25,15, LT); (27,15, LE); (30,15, LARROW); (33,15, GT); (35,15, GE); (1,16, NEWLINE);
-    (10,16, COLON); (12,16, ASSIGN); (15,16, OR); (17,16, LOR); (20,16, AND);
+    (10,16, COLON); (12,16, ASSIGN); (15,16, OR); (17,16, LOR); (20,16, AMP);
     (22,16, LAND); (25,16, LSBRA); (27,16, RSBRA); (29,16, NULL); (1,17, NEWLINE);
     (10,17, LPAR); (12,17, RPAR); (14,17, UNIT); (17,17, LBRACE); (19,17, RBRACE);
     (21,17, SLASH); (1,18, NEWLINE); (9,18, EOF);

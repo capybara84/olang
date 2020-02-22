@@ -70,9 +70,9 @@ let scan_ident scan =
     let id = cut_token is_ident scan in
     match id with
     | "_" -> WILDCARD | "module" -> MODULE | "import" -> IMPORT | "as" -> AS
-    | "type" -> TYPE | "let" -> LET | "rec" -> REC | "fun" -> FUN | "fn" -> FN
-    | "if" -> IF | "then" -> THEN | "else" -> ELSE | "match" -> MATCH
-    | "when" -> WHEN | "mutable" -> MUTABLE
+    | "decl" -> DECL | "type" -> TYPE | "and" -> AND | "let" -> LET | "rec" -> REC
+    | "fun" -> FUN | "fn" -> FN | "if" -> IF | "then" -> THEN | "else" -> ELSE
+    | "match" -> MATCH | "when" -> WHEN | "mutable" -> MUTABLE
     | _ -> ID id
 
 let get_char scan =
@@ -195,7 +195,7 @@ let rec scan_token scan =
     | Some '>' -> scan_token2 '=' GE GT
     | Some ':' -> scan_token2 '=' ASSIGN COLON
     | Some '|' -> scan_token2 '|' LOR OR
-    | Some '&' -> scan_token2 '&' LAND AND
+    | Some '&' -> scan_token2 '&' LAND AMP
     | Some '[' -> scan_token2 ']' NULL LSBRA
     | Some ']' -> next_char scan; RSBRA
     | Some ')' -> next_char scan; RPAR

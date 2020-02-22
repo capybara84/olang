@@ -530,9 +530,26 @@ and parse_expr pars =
     debug_parse_out "parse_expr";
     e
 
-let parse_type_def pars =
+let parse_type_decl pars =
+    (*
+    debug_parse_in "parse_type_in";
     next_token pars;
-    (0, Unit)    (*TODO*)
+    let rec loop e in
+        if peek_token pars <> AND then
+            e
+        else begin
+            next_token pars;
+            parse_type_def pars
+        end
+    in
+    let e = parse_type_def pars in
+    let e = loop e
+    in
+    debug_parse_out "parse_type_decl";
+    e
+    *)
+    next_token pars;
+    (0, Unit)   (*TODO*)
 
 let parse_module pars =
     debug_parse_in "parse_module";
@@ -563,7 +580,7 @@ let rec parse_decl pars =
         | NEWLINE | SEMI -> next_token pars; parse_decl pars
         | MODULE -> parse_module pars
         | IMPORT -> parse_import pars
-        | TYPE -> parse_type_def pars
+        | TYPE -> parse_type_decl pars
         | _ -> parse_expr pars
     in
     debug_parse_out "parse_decl";

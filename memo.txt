@@ -125,6 +125,9 @@ and skip :: ['a] -> 'a
     | [] -> []
     | x:xs -> take xs
 
+decl take :: ['a] -> 'a
+decl skip :: ['a] -> 'a
+
 * 
 
 fun add :: int -> int -> int

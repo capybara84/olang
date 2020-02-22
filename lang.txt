@@ -3,7 +3,8 @@ program
 decl
     = MODULE C_ID
     | IMPORT C_ID [AS C_ID]
-    | type_def
+    | DECL ID ':' type
+    | type_decl
     | expr
 expr
     = LET [REC] id_pat [':' type] '=' expr
@@ -22,9 +23,11 @@ a_params
 param
     = ID | '_'
 params
-    = '()' | patterns [WHEN expr]
-patterns
-    = pattern {pattern}
+    = '()' | pattern {pattern} [WHEN expr]
+match_list
+    = ['|'] match {'|' match }
+match
+    = pattern [WHEN expr] '->' expr
 pattern
     = or_pattern [AS ID]
 or_pattern
@@ -35,32 +38,58 @@ a_pattern
     = '[]'
     | '_'
     | ID
-    | BOOL_LIT | STRING_LIT
+    | BOOL_LIT | FLOAT_LIT | STRING_LIT
     | INT_LIT ['..' INT_LIT]
     | CHAR_LIT ['..' CHAR_LIT]
     | '(' pattern_list ')'
     | '[' pattern_list ']'
-    | C_ID {'.' C_ID} pattern
-    | C_ID {'.' C_ID} '{' [pattern {',' pattern}] '}'
+    | constr pattern
+    | constr '{' [pattern {',' pattern}] '}'
 pattern_list
     = pattern
     | pattern ',' pattern_list
+constr
+    = {C_ID '.'} C_ID
 
+type_decl
+    = TYPE type_def {AND type_def}
 type_def
-    = TYPE [type_param] ID '=' type
-type_param
-    = TVAR | '(' TVAR {',' TVAR} ')'
+    = [type_params] ID type_info
+type_info
+    = type_equation | type_representation
+type_equation
+    = '=' type
+type_representation
+    = '=' ['|'] constr_decl {'|' constr_decl}
+    | '=' record_decl
+type_params
+    =  T_VAR
+    | '(' T_VAR {',' T_VAR ')'
+record_decl
+    = '{' field_decl {';' field_decl} [';'] '}'
+constr_decl
+    = C_ID [type]
+field_decl
+    = [MUTABLE] ID '::' poly_typexpr
+
 type
-    = UNIT | BOOL | INT | CHAR | FLOAT | STRING
-    | ID | TVAR
+    = tuple_type ['->' type]
+tuple_type
+    = constr_type {'*' constr_type}
+constr_type
+    = a_type [type_constr]
+a_type
+    = T_VAR
     | '(' type ')'
-    | '(' type {',' type} ')'
-    | '[' type ']'
-    | type '->' type
-    | type {type} ID
-    | '{' {record_element} '}'
-record_element
-    = [MUTABLE] ID {',' ID} ':' type ';'
+    | '(' type {',' type} ')' type_constr
+    | type_constr
+
+type_constr
+    = { C_ID '.' } ID
+(*
+    | UNIT | BOOL | INT | CHAR | FLOAT | STRING
+    | LIST | REF
+*)
 
 logical_expr
     = equal_expr {logical_op equal_expr}
@@ -78,15 +107,15 @@ unary_expr
     = [unary_op] simple_expr
 simple_expr
     = id_expr | c_id_expr
-    | BOOL_LIT | INT_LIT | CHAR_LIT | STRING_LIT 
+    | BOOL_LIT | INT_LIT | CHAR_LIT | FLOAT_LIT | STRING_LIT 
     | '()' | '(' expr {',' expr} ')'
     | '[' [expr {',' expr}] ']'
 id_expr
     = ID {'.' ID} [assign]
 c_id_expr
-    = C_ID {'.' C_ID} '.' ID {'.' ID} [assign]
+    = C_ID {'.' C_ID} ['{' [expr {',' expr}] '}']
     | C_ID {'.' C_ID} expr
-    | C_ID {'.' C_ID} '{' [expr {',' expr}] '}'
+    | C_ID ['.' id_expr]
 assign
     = '<-' expr
     | ':=' expr
@@ -97,7 +126,7 @@ add_op = '+' | '-'
 mul_op = '*' | '/' | '%'
 unary_op = '!' | '-' | '&' | '*'
 
-module import as type let rec fun fn
+module import as decl type and let rec fun fn
 if then else match when mutable
 unit bool int char float string
 
@@ -105,3 +134,4 @@ ID C_ID BOOL_LIT INT_LIT CHAR_LIT STRING_LIT
 _ + * % , ; . ..
 - -> = == ! != < <= <- > >= : :=
 | || & && [ ] [] ( ) () { } /
+
