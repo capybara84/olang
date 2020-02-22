@@ -1,8 +1,7 @@
-* module
-* import
-* match
-* record
 * type def
+* variant
+* record
 * mutable
+* match
 * function match
 * compiler
