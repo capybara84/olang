@@ -173,6 +173,8 @@ and eval_decl env x =
         let new_env = Env.extend id r env in
         r := eval new_env e;
         (new_env, VUnit)
+    | (_, TypeDecl _) ->
+        type_decl env x
     | (_, Module id) ->
         let tab = Symbol.set_module id in
         (tab.env, VUnit)
@@ -185,6 +187,12 @@ and eval_decl env x =
         (env, VUnit)
     | e ->
         (env, eval env e)
+
+and type_decl env e =
+    match e with
+    | (n, TypeDecl (id, tvl, t)) ->
+        (env, VUnit)    (* TODO *)
+    | _ -> failwith "type decl bug"
 
 and import id =
     if Symbol.exist_module id then

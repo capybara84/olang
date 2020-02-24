@@ -20,6 +20,17 @@ type token_t = {
     col : int;
 }
 
+type typ =
+    | TUnit | TBool | TInt | TChar | TFloat | TString
+    | TConstr of ident * typ
+    | TTuple of typ list
+    | TFun of typ * typ
+    | TVar of int * typ option ref
+and type_decl =
+    | Type of typ
+    | TVariant of (ident * typ option) list
+    | TRecord of (ident * typ * mutflag) list
+and mutflag = Mutable | Immutable
 
 type binop = BinAdd | BinSub | BinMul | BinDiv | BinMod | BinLT | BinLE
         | BinGT | BinGE | BinEql | BinNeq | BinLor | BinLand | BinCons
@@ -47,19 +58,13 @@ type exp =
     | If of expr * expr * expr
     | Comp of expr list
     | Match of expr * (pattern * expr) list
-(*
-    | TypeDef of int option * ident * typ
-*)
+    | TypeDecl of ident * int list * typ
+    | TypeDeclAnd of expr * expr
     | Module of ident
     | Import of ident * ident option
 and
     expr = int * exp
-and typ =
-    | Tyvar of int * typ option ref
-    | Tycon of ident * typ list
-    | TVariant of (ident * typ option) list
-    | TRecord of (ident * typ * mutflag) list
-and mutflag = Mutable | Immutable
+
 
 type value =
     | VUnit | VNull | VBool of bool | VInt of int | VChar of char | VFloat of float
@@ -89,6 +94,43 @@ let token_to_string = function
     | NULL -> "[]" | LPAR -> "(" | RPAR -> ")" | UNIT -> "()" | LBRACE -> "{"
     | RBRACE -> "}" | SLASH -> "/"
 
+let tvar_to_string n =
+    "'" ^
+    if n < Char.code 'z' - Char.code 'a' then
+        String.make 1 (Char.chr ((Char.code 'a') + n))
+    else
+        string_of_int n
+
+let rec type_to_string = function
+    | TUnit -> "unit" | TBool -> "bool" | TInt -> "int" | TChar -> "char"
+    | TFloat -> "float" | TString -> "string"
+    | TConstr (id, t) -> "(" ^ type_to_string t ^ " " ^ id ^ ")"
+    | TTuple tl -> "(" ^ tuple_to_string tl ^ ")"
+    | TFun (t1, t2) -> "(" ^ type_to_string t1 ^ " -> " ^ type_to_string t2 ^ ")"
+    | TVar (n, {contents = None}) -> tvar_to_string n
+    | TVar (_, {contents = Some t}) -> type_to_string t
+and tuple_to_string = function
+    | [] -> ""
+    | t::[] -> type_to_string t
+    | t::ts -> type_to_string t ^ " * " ^ tuple_to_string ts
+
+let rec type_decl_to_string = function
+    | Type t -> type_to_string t
+    | TVariant vl -> variant_to_string vl
+    | TRecord fl -> record_to_string fl
+and variant_to_string = function
+    | [] -> ""
+    | (id, None)::xs ->
+        " | " ^ id ^ variant_to_string xs
+    | (id, Some t)::xs ->
+        " | " ^ id ^ " " ^ type_to_string t ^ variant_to_string xs
+and record_to_string = function
+    | [] -> ""
+    | (id, t, mut)::xs ->
+        (if mut = Mutable then " mutable " else " ") ^ id ^ " :: " ^ type_to_string t ^ ";"
+            ^ record_to_string xs
+
+
 let string_of_binop = function
     | BinAdd -> "+" | BinSub -> "-" | BinMul -> "*"
     | BinDiv -> "/" | BinMod -> "%" | BinLT -> "<"
@@ -116,12 +158,12 @@ let rec expr_to_string = function
     | (_, Fn (e1, e2)) -> "(fn " ^ expr_to_string e1 ^ " -> " ^ expr_to_string e2 ^ ")"
     | (_, Apply (e1, e2)) -> "(" ^ expr_to_string e1 ^ " " ^ expr_to_string e2 ^ ")"
     | (_, If (e1, e2, e3)) -> "(if " ^ expr_to_string e1 ^ " then " ^ expr_to_string e2
-            ^ " else " ^ expr_to_string e3 ^ ")"
+        ^ " else " ^ expr_to_string e3 ^ ")"
     | (_, Comp el) -> "{" ^ comp_to_string el ^ "}"
     | (_, Match (e, lst)) ->  "(match " ^ expr_to_string e ^ " {" ^ match_list_to_string lst ^ "})"
-(*
-    | (_, TypeDef _) ->
-*)
+    | (_, TypeDecl (id, tvl, t)) ->
+        "(type " ^ id ^ tvlist_to_string tvl ^ " " ^ type_to_string t ^ ")"
+    | (_, TypeDeclAnd (e1, e2) -> expr_to_string e1 ^ " and " ^ expr_to_string e2
     | (_, Module name) ->
         "module " ^ name
     | (_, Import (name, Some rename)) ->
@@ -156,6 +198,15 @@ and pat_list_to_string = function
     | [] -> ""
     | x::[] -> pattern_to_string x
     | x::xs -> pattern_to_string x ^ ", " ^ pat_list_to_string xs
+and tvlist_to_string = function
+    | [] -> ""
+    | x::[] -> " " ^ tvar_to_string x
+    | tvl -> " (" ^ tvar_list_to_string tvl  ^ ")"
+and tvar_list_to_string = function
+    | [] -> ""
+    | x::[] -> tvar_to_string x
+    | x::xs -> tvar_to_string x ^ ", " ^ tvar_list_to_string xs
+
 
 let rec value_to_string = function
     | VUnit -> "()"

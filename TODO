@@ -1,7 +1,13 @@
-* type def
+* type decl
 * variant
 * record
 * mutable
 * match
 * function match
 * compiler
+
+
+---
+type のパーサーを書いている最中に構文間違いを発見
+全体的にtypeの構文を見直そう
+（constrのネーミングが雑）

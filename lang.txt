@@ -54,37 +54,41 @@ constr
 type_decl
     = TYPE type_def {AND type_def}
 type_def
-    = [type_params] ID type_info
-type_info
-    = type_equation | type_representation
-type_equation
-    = '=' type
-type_representation
-    = '=' ['|'] constr_decl {'|' constr_decl}
-    | '=' record_decl
+    = [type_params] ID '=' (type | record_decl | variant_decl)
 type_params
     =  T_VAR
     | '(' T_VAR {',' T_VAR ')'
 record_decl
     = '{' field_decl {';' field_decl} [';'] '}'
-constr_decl
-    = C_ID [type]
 field_decl
-    = [MUTABLE] ID '::' poly_typexpr
+    = [MUTABLE] ID '::' type
+variant_decl
+    = ['|'] variant_elem {'|' variant_elem }
+variant_elem
+    = C_ID [type]
 
 type
     = tuple_type ['->' type]
 tuple_type
     = constr_type {'*' constr_type}
 constr_type
-    = a_type [type_constr]
+    = a_type [type_name]
+    | '(' type {',' type} ')' type_name
 a_type
-    = T_VAR
+    = TVAR
     | '(' type ')'
-    | '(' type {',' type} ')' type_constr
-    | type_constr
+    | type_name
+(*
+type = tuple_type ['->' type]
+tuple_type = a_type {'*' a_type}
+a_type
+    = TVAR [type_name]
+    | '(' type ')'
+    | '(' type {',' type} ')' type_name
+    | type_name [type_name]
+*)
 
-type_constr
+type_name
     = { C_ID '.' } ID
 (*
     | UNIT | BOOL | INT | CHAR | FLOAT | STRING

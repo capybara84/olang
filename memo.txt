@@ -138,3 +138,19 @@ fun add :: int -> int -> int
 fun add x y = x + y
 fun add = x y -> x + y
 
+*
+
+type 'a point = 'a * 'a
+
+(1,2) (* int point *)
+
+type ('a,'b) pair = 'a * 'b
+
+decl t :: (string, int) pair
+
+("abc", 10) (* (string, int) pair *)
+
+int ref
+
+let a = & int
+
