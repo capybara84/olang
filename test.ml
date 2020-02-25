@@ -193,16 +193,32 @@ let parser_all_tests = [
     ("(1,2)", (1, Tuple [(1, IntLit 1); (1, IntLit 2)]));
     ("(1,2,3)", (1, Tuple [(1, IntLit 1); (1, IntLit 2); (1, IntLit 3)]));
 
-    ("type integer = int", (1, TypeDecl ("integer", [], Type Type.t_int)));
+    ("type integer = int", (1, TypeDecl ("integer", [], TTypeDecl Type.t_int)));
     ("type c = char and s = string",
-        (1, TypeDeclAnd ((1, TypeDecl ("c", [], Type Type.t_char)),
-            (1, TypeDecl ("s", [], Type Type.t_string)))));
+        (1, TypeDeclAnd ((1, TypeDecl ("c", [], TTypeDecl Type.t_char)),
+            (1, TypeDecl ("s", [], TTypeDecl Type.t_string)))));
     ("type c = char and s = string and i = int",
-        (1, TypeDeclAnd ((1, TypeDeclAnd ((1, TypeDecl ("c", [], Type Type.t_char)),
-            (1, TypeDecl ("s", [], Type Type.t_string)))),
-            (1, TypeDecl ("i", [], Type Type.t_int)))));
+        (1, TypeDeclAnd ((1, TypeDeclAnd ((1, TypeDecl ("c", [], TTypeDecl Type.t_char)),
+            (1, TypeDecl ("s", [], TTypeDecl Type.t_string)))),
+            (1, TypeDecl ("i", [], TTypeDecl Type.t_int)))));
+    ("type f = unit -> int",
+        (1, TypeDecl ("f", [], TTypeDecl (TFun (Type.t_unit, Type.t_int)))));
+    ("type t = int * char",
+        (1, TypeDecl ("t", [], TTypeDecl (TTuple [Type.t_int; Type.t_char]))));
+    ("type f = (float)",
+        (1, TypeDecl ("f", [], TTypeDecl Type.t_float)));
+    ("type l = int list",
+        (1, TypeDecl ("l", [], TTypeDecl (TConstr (([], "list"), Some Type.t_int)))));
     ("type point2d = { mutable x :: int; mutable y :: int }",
-        (1, TypeDecl ("point2d", [], TRecord [("x",Type.t_int,Mutable);("y",Type.t_int,Mutable)])));
+        (1, TypeDecl ("point2d", [], TRecordDecl [("x",Type.t_int,Mutable);("y",Type.t_int,Mutable)])));
+    ("type 'a point2d = { x :: 'a; y :: 'a }",
+        (1, TypeDecl ("point2d", [0],
+            TRecordDecl [("x",TVar (0, ref None),Immutable);("y", TVar (0, ref None),Immutable)])));
+    ("type ('a,'b,'c) atob = { a :: 'a; b :: 'b; c :: 'c }",
+        (1, TypeDecl ("atob", [0;1;2],
+            TRecordDecl [("a",TVar (0, ref None),Immutable);
+                ("b", TVar (1, ref None),Immutable);
+                ("c", TVar (2, ref None),Immutable)])));
 ]
 
 let parser_test verbose =
@@ -347,6 +363,8 @@ let eval_test verbose =
 let test () =
     scanner_test !g_verbose;
     parser_test !g_verbose;
+(*
     eval_test !g_verbose;
+*)
     test_report ()
 

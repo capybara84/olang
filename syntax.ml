@@ -29,9 +29,9 @@ type typ =
     | TFun of typ * typ
     | TVar of int * typ option ref
 and type_decl =
-    | Type of typ
-    | TVariant of (ident * typ option) list
-    | TRecord of (ident * typ * mutflag) list
+    | TTypeDecl of typ
+    | TVariantDecl of (ident * typ option) list
+    | TRecordDecl of (ident * typ * mutflag) list
 and mutflag = Mutable | Immutable
 
 type binop = BinAdd | BinSub | BinMul | BinDiv | BinMod | BinLT | BinLE
@@ -78,12 +78,19 @@ type symtab = {
     mutable env : value ref Env.t;
 }
 
+let tvar_to_string n =
+    "'" ^
+        if n <= Char.code 'z' - Char.code 'a' then
+            String.make 1 (Char.chr ((Char.code 'a') + n))
+        else
+            string_of_int n
+
 let token_to_string = function
     | EOF -> "<EOF>" | NEWLINE -> "<NEWLINE>" | ID id -> id | C_ID id -> id
     | BOOL_LIT b -> string_of_bool b | INT_LIT n -> string_of_int n
     | CHAR_LIT c -> "'" ^ String.make 1 c ^ "'"
     | FLOAT_LIT f -> string_of_float f | STRING_LIT s -> "\"" ^ s ^ "\""
-    | TVAR n -> "'" ^ string_of_int n
+    | TVAR n -> tvar_to_string n
     | MODULE -> "module" | IMPORT -> "import" | AS -> "as" | DECL -> "decl"
     | TYPE -> "type" | AND -> "and" | LET -> "let" | REC -> "rec" | FUN -> "fun"
     | FN -> "fn" | IF -> "if" | THEN -> "then" | ELSE -> "else" | MATCH -> "match"
@@ -95,13 +102,6 @@ let token_to_string = function
     | OR -> "|" | LOR -> "||" | AMP -> "&" | LAND -> "&&" | LSBRA -> "[" | RSBRA -> "]"
     | NULL -> "[]" | LPAR -> "(" | RPAR -> ")" | UNIT -> "()" | LBRACE -> "{"
     | RBRACE -> "}" | SLASH -> "/"
-
-let tvar_to_string n =
-    "'" ^
-    if n < Char.code 'z' - Char.code 'a' then
-        String.make 1 (Char.chr ((Char.code 'a') + n))
-    else
-        string_of_int n
 
 let rec tname_to_string (idl, id) =
     match idl with
@@ -123,9 +123,9 @@ and tuple_to_string = function
     | t::ts -> type_to_string t ^ " * " ^ tuple_to_string ts
 
 let rec type_decl_to_string = function
-    | Type t -> type_to_string t
-    | TVariant vl -> variant_to_string vl
-    | TRecord fl -> record_to_string fl
+    | TTypeDecl t -> type_to_string t
+    | TVariantDecl vl -> variant_to_string vl
+    | TRecordDecl fl -> record_to_string fl
 and variant_to_string = function
     | [] -> ""
     | (id, None)::xs ->
@@ -242,3 +242,37 @@ and vcons_to_string = function
         | _ -> failwith "cons rhs bug")
     | _ -> failwith "cons bug"
 
+let rec expr_to_string_src = function
+    | (_, Eof) -> "Eof" | (_, Unit) -> "Unit" | (_, Null) -> "Null" | (_, WildCard) -> "WildCard"
+    | (_, BoolLit b) -> "(BoolLit " ^ string_of_bool b ^ ")"
+    | (_, IntLit n) -> "(IntLit " ^ string_of_int n ^ ")"
+    | (_, CharLit c) -> "(CharLit '" ^ String.make 1 c ^ "')"
+    | (_, FloatLit f) -> "(FloatLit " ^ string_of_float f ^ ")"
+    | (_, StringLit s) -> "(StringLit \"" ^ s ^ "\")"
+    | (_, Ident id) -> "(Ident \"" ^ id ^ "\")"
+    | (_, IdentMod (id, e)) -> "(IdentMod (\"" ^ id ^ "\", " ^ expr_to_string_src e ^ ")"
+    | (_, Record (e, id)) -> "(Record (" ^ expr_to_string_src e ^ ", \"" ^ id ^ "\"))"
+    | (_, Tuple el) -> "(Tuple (" ^ tuple_to_string_src el ^ "))"
+    | (_, Binary (op, lhs, rhs)) -> "(Binary (" ^ string_of_binop op ^ ", "
+        ^ expr_to_string_src lhs ^ ", " ^ expr_to_string_src rhs ^ "))"
+    | (_, Unary (op, e)) -> "(Unary (" ^ string_of_unop_src op ^ ", " ^ expr_to_string_src e ^ "))"
+    | (_, Let (id, e)) -> "(Let (\"" ^ id ^ "\", " ^ expr_to_string_src e ^ "))"
+    | (_, LetRec (id, e)) -> "(LetRec (\"" ^ id ^ "\", " ^ expr_to_string_src e ^ "))"
+    | (_, Fn (e1, e2)) -> "(Fn (" ^ expr_to_string_src e1 ^ ", " ^ expr_to_string_src e2 ^ "))"
+    | (_, Apply (e1, e2)) -> "(Apply (" ^ expr_to_string_src e1 ^ ", " ^ expr_to_string_src e2 ^ "))"
+    | (_, If (e1, e2, e3)) -> "(If (" ^ expr_to_string_src e1 ^ ", " ^ expr_to_string_src e2
+        ^ ", " ^ expr_to_string_src e3 ^ "))"
+    | (_, Comp el) -> "(Comp " ^ comp_to_string_src el ^ ")"
+    | (_, Match (e, lst)) ->  "(Match (" ^ expr_to_string_src e ^ ", "
+        ^ match_list_to_string_src lst ^ "))"
+    | (_, TypeDecl (id, tvl, td)) ->
+        "(TypeDecl (\"" ^ id ^ "\", " ^ tvlist_to_string_src tvl ^ ", "
+            ^ type_decl_to_string_src td ^ "))"
+    | (_, TypeDeclAnd (e1, e2)) -> "(" ^ expr_to_string_src e1 ^ ", " ^ expr_to_string e2 ^ ")"
+    | (_, Module name) -> "(Module " ^ name ^ ")"
+    | (_, Import (name, Some rename)) -> "(Import (" ^ name ^ ", Some " ^ rename ^ "))"
+    | (_, Import (name, None)) -> "(Import " ^ name ^ ", None)"
+and tuple_to_string e in
+and match_list_to_string_src lst in
+and tvlist_to_string_src lhs in
+and type_decl_to_string td

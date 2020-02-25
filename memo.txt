@@ -58,32 +58,32 @@ match a {
 
 * Record
 
-    type Point = { x : int; y : int }
-    Point { x = 1, y = 2 }
-    Point { 1, 2 }
+    type point = { x : int; y : int }
+    point { x = 1, y = 2 }
+    point { 1, 2 }
 
-    val p = Point {1, 2}
+    val p = point {1, 2}
     p.x
 
 * Variant
 
-    type Color = Red | Green | Blue | RGB (int,int,int)
+    type color = Red | Green | Blue | RGB (int * int * int)
 
 
 * Type
 
     int
-    [int]
-    (int, int)
+    int list
+    (int * int)
     int -> int
 
-    type x = X int
+    type integer = int
     type 'a option = None | Some 'a
-    type ('a, 'b) pair = Pair ('a, 'b)
+    type ('a, 'b) pair = Pair ('a * 'b)
 
 * assignment
 
-    val x = & 0
+    let x = & 0
     x := *x + 1
     
 * comment
@@ -125,6 +125,8 @@ and skip :: ['a] -> 'a
     | [] -> []
     | x:xs -> take xs
 
+-or-
+
 decl take :: ['a] -> 'a
 decl skip :: ['a] -> 'a
 
@@ -152,5 +154,31 @@ decl t :: (string, int) pair
 
 int ref
 
-let a = & int
+let a = & 1
 
+--
+type
+
+type integer = int
+type c = char and s = string
+type c = char and s = string and i = int
+type f = unit -> int
+type f = int -> int -> int
+type 'a f = 'a -> 'a -> 'a
+type 'a x = 'a
+type t = int * char
+type f = (float)
+type l = int list
+type 'a r = 'a ref
+type 'a pair = ('a * 'a)
+type ('a, 'b) pair = ('a * 'b)
+type point2d = { mutable x :: int; mutable y :: int }
+type 'a point2d = { x :: 'a; y :: 'a }
+type ('a,'b,'c) atob = { a :: 'a; b :: 'b; c :: 'c }
+type color = | Red | Green | Blue
+type color = Red | Green | Blue
+type color = Red | Green | Blue | RGB (int * int * int)
+type 'a option = None | Some 'a
+type 'a tree = Node 'a | Leaf ('a tree * 'a tree)
+type itree = int tree
+type lt = List.t

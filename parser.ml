@@ -657,7 +657,7 @@ let parse_variant_decl pars cid_opt =
             List.rev res
     in
     let (id, t) = parse_variant_elem pars cid_opt in
-    let res = TVariant (loop ([(id, Some t)])) in
+    let res = TVariantDecl (loop ([(id, Some t)])) in
     debug_parse_out "parse_variant_decl";
     res
 
@@ -691,7 +691,7 @@ let parse_record_decl pars =
         else
             List.rev fl
     in
-    let res = TRecord (loop []) in
+    let res = TRecordDecl (loop []) in
     debug_parse_out "parse_record_decl";
     res
 
@@ -703,13 +703,14 @@ let parse_type_params_opt pars =
             next_token pars;
             if peek_token pars = COMMA then
                 (next_token pars; parse_type_param_list (n :: res))
-            else n :: res
-        | RPAR -> res
+            else List.rev (n :: res)
+        | RPAR -> List.rev res
         | t -> error pars ("expect type variable at '" ^ token_to_string t ^ "'")
     in
     let res = 
         match peek_token pars with
         | TVAR n ->
+            next_token pars;
             [n]
         | LPAR ->
             next_token pars;
@@ -732,10 +733,10 @@ let parse_type_def pars =
         | C_ID cid ->
             next_token pars;
             if peek_token pars = DOT then
-                (next_token pars; Type (parse_type pars (Some cid)))
+                (next_token pars; TTypeDecl (parse_type pars (Some cid)))
             else
                 parse_variant_decl pars (Some cid)
-        | _ -> Type (parse_type pars None)
+        | _ -> TTypeDecl (parse_type pars None)
     in
     let e = to_expr pars (TypeDecl (id, tvl, td)) in
     debug_parse_out "parse_type_def";
