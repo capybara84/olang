@@ -20,9 +20,11 @@ type token_t = {
     col : int;
 }
 
+type type_name = ident list * ident
+
 type typ =
     | TUnit | TBool | TInt | TChar | TFloat | TString
-    | TConstr of ident * typ
+    | TConstr of type_name * typ option
     | TTuple of typ list
     | TFun of typ * typ
     | TVar of int * typ option ref
@@ -101,10 +103,16 @@ let tvar_to_string n =
     else
         string_of_int n
 
+let rec tname_to_string (idl, id) =
+    match idl with
+    | [] -> id
+    | x::xs -> x ^ "." ^ tname_to_string (xs, id)
+
 let rec type_to_string = function
     | TUnit -> "unit" | TBool -> "bool" | TInt -> "int" | TChar -> "char"
     | TFloat -> "float" | TString -> "string"
-    | TConstr (id, t) -> "(" ^ type_to_string t ^ " " ^ id ^ ")"
+    | TConstr (name, Some t) -> "(" ^ tname_to_string name ^ " " ^ type_to_string t ^ ")"
+    | TConstr (name, None) -> "(" ^ tname_to_string name ^ ")"
     | TTuple tl -> "(" ^ tuple_to_string tl ^ ")"
     | TFun (t1, t2) -> "(" ^ type_to_string t1 ^ " -> " ^ type_to_string t2 ^ ")"
     | TVar (n, {contents = None}) -> tvar_to_string n
@@ -163,7 +171,7 @@ let rec expr_to_string = function
     | (_, Match (e, lst)) ->  "(match " ^ expr_to_string e ^ " {" ^ match_list_to_string lst ^ "})"
     | (_, TypeDecl (id, tvl, t)) ->
         "(type " ^ id ^ tvlist_to_string tvl ^ " " ^ type_to_string t ^ ")"
-    | (_, TypeDeclAnd (e1, e2) -> expr_to_string e1 ^ " and " ^ expr_to_string e2
+    | (_, TypeDeclAnd (e1, e2)) -> expr_to_string e1 ^ " and " ^ expr_to_string e2
     | (_, Module name) ->
         "module " ^ name
     | (_, Import (name, Some rename)) ->

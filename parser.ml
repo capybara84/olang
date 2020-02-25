@@ -108,6 +108,11 @@ let next_token pars =
     pars.token <- Scanner.get_token pars.scanner;
     debug_token @@ "token = " ^ token_to_string @@ peek_token pars
 
+let is_type_name pars =
+    match peek_token pars with
+    | C_ID _ | ID _ -> true
+    | _ -> false
+
 let rec expect pars token =
     let current_token = peek_token pars in
     if current_token = token then
@@ -530,62 +535,85 @@ and parse_expr pars =
     debug_parse_out "parse_expr";
     e
 
-let parse_type_c pars cid =
-
-let parse_type_constr pars =
-
-let parse_a_type pars =
-    debug_parse_in "parse_a_type";
-    let res = 
+let parse_type_name pars =
+    debug_parse_in "parse_type_name";
+    let rec loop name_lst =
         match peek_token pars with
-        | TVAR n -> TVar (n, ref None)
+        | C_ID cid ->
+            next_token pars;
+            loop (cid::name_lst)
+        | _ ->
+            let id = expect_id pars in
+            (List.rev name_lst, id)
+    in
+    let res = loop [] in
+    debug_parse_out "parse_type_name";
+    res
+
+let rec parse_constr_type pars =
+    debug_parse_in "parse_constr_type";
+    let res =
+        match peek_token pars with
+        | TVAR n ->
+            next_token pars;
+            let t = TVar (n, ref None) in
+            if is_type_name pars then
+                TConstr (parse_type_name pars, Some t)
+            else
+                t
+        | C_ID cid ->
+            let t = TConstr (parse_type_name pars, None) in
+            if is_type_name pars then
+                TConstr (parse_type_name pars, Some t)
+            else
+                t
         | LPAR ->
             next_token pars;
             let t = parse_type pars in
-            let rec loop lst =
-            in
-            if peek_token pars = COMMA then begin
-                next_token pars;
+            if peek_token pars <> COMMA then begin
+                expect pars RPAR;
+                if is_type_name pars then
+                    TConstr (parse_type_name pars, Some t)
+                else
+                    t
+            end else begin
+                let rec loop lst =
+                    let t = parse_type pars in
+                    if peek_token pars = COMMA then begin
+                        next_token pars;
+                        skip_newline pars;
+                        loop (t::lst)
+                    end else
+                        List.rev (t::lst)
+                in
                 let tl = loop [t] in
                 expect pars RPAR;
-            end else begin
-                expect pars RPAR;
-                t
+                TConstr (parse_type_name pars, Some (TTuple tl))
             end
-        | _ -> parse_type_constr pars
-    in
-    debug_parse_out "parse_a_type";
-    res
-
-let parse_constr_type pars =
-    debug_parse_in "parse_constr_type";
-    let t = parse_a_type pars in
-    let res =
-        match peek_token pars with
-        | C_ID _ ->
-            parse_type_constr pars t
-        | _ -> t
+        | _ -> failwith "parse_constr_type bug"
     in
     debug_parse_out "parse_constr_type";
     res
 
+and parse_type_c pars cid =
 
-let parse_tuple_type pars =
+and parse_tuple_type pars =
     debug_parse_in "parse_tuple_type";
     let t = parse_constr_type pars in
     let rec loop res =
         if peek_token pars = STAR then
-            (next_token pars; loop (parse_constr_type pars) :: res)
+            (next_token pars; loop ((parse_constr_type pars) :: res))
         else List.rev res
     in
-    let t =
-        if peek_token pars = STAR then begin
+    let res =
+        if peek_token pars = STAR then
             TTuple (loop [t])
-        end else t
+        else t
+    in
     debug_parse_out "parse_tuple_type";
-    t
+    res
 
-let parse_type pars =
+and parse_type pars =
     debug_parse_in "parse_type";
     let t = parse_tuple_type pars in
     let res =
@@ -596,8 +624,8 @@ let parse_type pars =
     debug_parse_out "parse_type";
     res
 
-let parse_constr_decl pars cid_opt =
-    debug_parse_in "parse_constr_decl";
+let parse_variant_elem pars cid_opt =
+    debug_parse_in "parse_variant_elem";
     let res =
         match cid_opt with
         | None ->
@@ -608,11 +636,11 @@ let parse_constr_decl pars cid_opt =
                         next_token pars;
                         (cid, parse_type pars)
                     end
-                | t -> error pars "expect Capitalized ID at '" ^ token_to_string t ^ "'"
+                | t -> error pars ("expect Capitalized ID at '" ^ token_to_string t ^ "'")
             end
         | Some cid -> (cid, parse_type pars)
     in
-    debug_parse_out "parse_constr_decl";
+    debug_parse_out "parse_variant_elem";
     res
 
 let parse_variant_decl pars cid_opt =
@@ -622,13 +650,13 @@ let parse_variant_decl pars cid_opt =
     let rec loop res =
         if peek_token pars = OR then begin
             next_token pars;
-            let (id, t) = parse_constr_decl pars None in
-            loop (id, t)::res
+            let (id, t) = parse_variant_elem pars None in
+            loop ((id, Some t)::res)
         end else
             List.rev res
     in
-    let (id, t) = parse_constr_decl pars cid_opt in
-    let res = TVariant (loop [(id, t)]);
+    let (id, t) = parse_variant_elem pars cid_opt in
+    let res = TVariant (loop ([(id, Some t)])) in
     debug_parse_out "parse_variant_decl";
     res
 
@@ -638,18 +666,18 @@ let parse_record_decl pars =
     debug_parse_out "parse_record_decl";
     TRecord []  (*TODO*)
 
-let parse_type_param_opt pars =
+let parse_type_params_opt pars =
+    debug_parse_in "parse_type_params_opt";
     let rec parse_type_param_list res =
         match peek_token pars with
         | TVAR n ->
             next_token pars;
-            if peek_token = COMMA then
-                (next_token pars; parse_type_param_list pars (n :: res)
+            if peek_token pars = COMMA then
+                (next_token pars; parse_type_param_list (n :: res))
             else n :: res
         | RPAR -> res
-        | t -> error pars "expect type variable at '" ^ token_to_string t ^ "'"
+        | t -> error pars ("expect type variable at '" ^ token_to_string t ^ "'")
     in
-    debug_parse_in "parse_type_param_opt";
     let res = 
         match peek_token pars with
         | TVAR n ->
@@ -663,7 +691,7 @@ let parse_type_param_opt pars =
             end
         | _ -> []
     in
-    debug_parse_out "parse_type_param_opt";
+    debug_parse_out "parse_type_params_opt";
     res
 
 let parse_type_def pars =
@@ -684,14 +712,14 @@ let parse_type_def pars =
             end
         | _ -> parse_type pars
     in
-    let e = TypeDecl id tvl t in
+    let e = TypeDecl (id, tvl, t) in
     debug_parse_out "parse_type_def";
     e
 
 let parse_type_decl pars =
     debug_parse_in "parse_type_decl";
     next_token pars;
-    let rec loop e in
+    let rec loop e =
         if peek_token pars <> AND then
             e
         else begin
