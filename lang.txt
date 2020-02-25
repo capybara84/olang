@@ -72,21 +72,10 @@ type
 tuple_type
     = constr_type {'*' constr_type}
 constr_type
-    = a_type [type_name]
-    | '(' type {',' type} ')' type_name
-a_type
-    = TVAR
-    | type_name
-    | '(' type ')'
-(*
-type = tuple_type ['->' type]
-tuple_type = constr_type {'*' constr_type}
-constr_type
     = TVAR [type_name]
     | type_name [type_name]
     | '(' type ')' [type_name]
     | '(' type {',' type} ')' type_name
-*)
 
 type_name
     = { C_ID '.' } ID

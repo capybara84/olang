@@ -175,6 +175,9 @@ and eval_decl env x =
         (new_env, VUnit)
     | (_, TypeDecl _) ->
         type_decl env x
+    | (_, TypeDeclAnd (x, y)) ->
+        ignore @@ type_decl env x;  (* TODO *)
+        type_decl env y
     | (_, Module id) ->
         let tab = Symbol.set_module id in
         (tab.env, VUnit)

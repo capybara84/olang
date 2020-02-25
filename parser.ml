@@ -113,6 +113,11 @@ let is_type_name pars =
     | C_ID _ | ID _ -> true
     | _ -> false
 
+let is_field_decl pars =
+    match peek_token pars with
+    | MUTABLE | ID _ -> true
+    | _ -> false
+
 let rec expect pars token =
     let current_token = peek_token pars in
     if current_token = token then
@@ -121,7 +126,7 @@ let rec expect pars token =
         (next_token pars; expect pars token)
     else
         error pars ("missing token '" ^ token_to_string token ^
-                "' at '" ^ token_to_string current_token ^ "'")
+            "' at '" ^ token_to_string current_token ^ "'")
 
 let rec expect_id pars =
     match peek_token pars with
@@ -420,8 +425,7 @@ and parse_fun pars =
     let args = parse_params pars in
     expect pars EQ;
     skip_newline pars;
-    let e = List.fold_right (fun arg body -> to_expr pars (Fn (arg, body))) args
-                            (parse_expr pars)
+    let e = List.fold_right (fun arg body -> to_expr pars (Fn (arg, body))) args (parse_expr pars)
     in
     debug_parse_out "parse_fun";
     to_expr pars (LetRec (id, e))
@@ -460,8 +464,7 @@ and parse_fn pars =
     let args = parse_params pars in
     expect pars RARROW;
     skip_newline pars;
-    let e = List.fold_right (fun arg body -> to_expr pars ( Fn (arg, body))) args
-                (parse_expr pars) in
+    let e = List.fold_right (fun arg body -> to_expr pars ( Fn (arg, body))) args (parse_expr pars) in
     debug_parse_out "parse_fn";
     e
 
@@ -492,17 +495,15 @@ and parse_expr_list pars =
     debug_parse_in "parse_expr_list";
     let rec loop () =
         match peek_token pars with
-            | EOF | RBRACE -> []
-            | SEMI ->
-                next_token pars;
-                if peek_token pars = RBRACE then []
-                else loop ()
-            | _ ->
-                begin
-                    let e = parse_expr pars in
-                    skip_newline pars;
-                    e::(loop ())
-                end
+        | EOF | RBRACE -> []
+        | SEMI ->
+            next_token pars;
+            if peek_token pars = RBRACE then []
+            else loop ()
+        | _ ->
+            let e = parse_expr pars in
+            skip_newline pars;
+            e::(loop ())
     in
     let e = loop () in
     debug_parse_in "parse_expr_list";
@@ -535,74 +536,74 @@ and parse_expr pars =
     debug_parse_out "parse_expr";
     e
 
-let parse_type_name pars =
+let parse_type_name pars cid_opt =
     debug_parse_in "parse_type_name";
-    let rec loop name_lst =
-        match peek_token pars with
-        | C_ID cid ->
-            next_token pars;
-            loop (cid::name_lst)
+    let rec loop name_lst cid_opt =
+        match cid_opt with
+        | Some cid ->
+            loop (cid::name_lst) None
         | _ ->
-            let id = expect_id pars in
-            (List.rev name_lst, id)
+            (match peek_token pars with
+            | C_ID cid ->
+                next_token pars;
+                loop (cid::name_lst) None
+            | _ ->
+                let id = expect_id pars in
+                (List.rev name_lst, id))
     in
-    let res = loop [] in
+    let res = loop [] cid_opt in
     debug_parse_out "parse_type_name";
     res
 
-let rec parse_constr_type pars =
+let rec parse_constr_type pars cid_opt =
     debug_parse_in "parse_constr_type";
     let res =
-        match peek_token pars with
-        | TVAR n ->
-            next_token pars;
-            let t = TVar (n, ref None) in
-            if is_type_name pars then
-                TConstr (parse_type_name pars, Some t)
-            else
-                t
-        | C_ID cid ->
-            let t = TConstr (parse_type_name pars, None) in
-            if is_type_name pars then
-                TConstr (parse_type_name pars, Some t)
-            else
-                t
-        | LPAR ->
-            next_token pars;
-            let t = parse_type pars in
-            if peek_token pars <> COMMA then begin
-                expect pars RPAR;
-                if is_type_name pars then
-                    TConstr (parse_type_name pars, Some t)
-                else
-                    t
-            end else begin
-                let rec loop lst =
-                    let t = parse_type pars in
-                    if peek_token pars = COMMA then begin
-                        next_token pars;
-                        skip_newline pars;
-                        loop (t::lst)
-                    end else
-                        List.rev (t::lst)
-                in
-                let tl = loop [t] in
-                expect pars RPAR;
-                TConstr (parse_type_name pars, Some (TTuple tl))
-            end
-        | _ -> failwith "parse_constr_type bug"
+        let t = match cid_opt with
+            | Some _ ->
+                TConstr (parse_type_name pars cid_opt, None)
+            | _ ->
+                (match peek_token pars with
+                | TVAR n ->
+                    next_token pars;
+                    TVar (n, ref None)
+                | C_ID _ | ID _ ->
+                    TConstr (parse_type_name pars None, None)
+                | LPAR ->
+                    next_token pars;
+                    let t = parse_type pars None in
+                    if peek_token pars <> COMMA then begin
+                        expect pars RPAR;
+                        t
+                    end else begin
+                        let rec loop lst =
+                            let t = parse_type pars None in
+                            if peek_token pars = COMMA then begin
+                                next_token pars;
+                                skip_newline pars;
+                                loop (t::lst)
+                            end else
+                                List.rev (t::lst)
+                        in
+                        let tl = loop [t] in
+                        expect pars RPAR;
+                        TTuple tl
+                    end
+                | _ -> failwith "parse_constr_type bug")
+        in
+        if is_type_name pars then
+            TConstr (parse_type_name pars None, Some t)
+        else
+            t
     in
     debug_parse_out "parse_constr_type";
     res
 
-and parse_type_c pars cid =
-
-and parse_tuple_type pars =
+and parse_tuple_type pars cid_opt =
     debug_parse_in "parse_tuple_type";
-    let t = parse_constr_type pars in
+    let t = parse_constr_type pars cid_opt in
     let rec loop res =
         if peek_token pars = STAR then
-            (next_token pars; loop ((parse_constr_type pars) :: res))
+            (next_token pars; loop ((parse_constr_type pars None) :: res))
         else List.rev res
     in
     let res =
@@ -613,12 +614,12 @@ and parse_tuple_type pars =
     debug_parse_out "parse_tuple_type";
     res
 
-and parse_type pars =
+and parse_type pars cid_opt =
     debug_parse_in "parse_type";
-    let t = parse_tuple_type pars in
+    let t = parse_tuple_type pars cid_opt in
     let res =
         if peek_token pars = RARROW then
-            (next_token pars; TFun (t, parse_type pars))
+            (next_token pars; TFun (t, parse_type pars None))
         else t
     in
     debug_parse_out "parse_type";
@@ -634,11 +635,11 @@ let parse_variant_elem pars cid_opt =
                 | C_ID cid ->
                     begin
                         next_token pars;
-                        (cid, parse_type pars)
+                        (cid, parse_type pars None)
                     end
                 | t -> error pars ("expect Capitalized ID at '" ^ token_to_string t ^ "'")
             end
-        | Some cid -> (cid, parse_type pars)
+        | Some cid -> (cid, parse_type pars None)
     in
     debug_parse_out "parse_variant_elem";
     res
@@ -660,11 +661,39 @@ let parse_variant_decl pars cid_opt =
     debug_parse_out "parse_variant_decl";
     res
 
+let parse_field_decl pars =
+    debug_parse_in "parse_field_decl";
+    let mut_flag =
+        if peek_token pars = MUTABLE then
+            (next_token pars; Mutable)
+        else
+            Immutable
+    in
+    let id = expect_id pars in
+    expect pars DCOLON;
+    let t = parse_type pars None in
+    let res = (id, t, mut_flag) in
+    debug_parse_out "parse_field_decl";
+    res
+
 let parse_record_decl pars =
     debug_parse_in "parse_record_decl";
     next_token pars;
+    let rec loop fl =
+        if is_field_decl pars then
+            let f = parse_field_decl pars in
+            if peek_token pars <> SEMI then
+                List.rev (f::fl)
+            else begin
+                next_token pars;
+                loop (f::fl)
+            end
+        else
+            List.rev fl
+    in
+    let res = TRecord (loop []) in
     debug_parse_out "parse_record_decl";
-    TRecord []  (*TODO*)
+    res
 
 let parse_type_params_opt pars =
     debug_parse_in "parse_type_params_opt";
@@ -683,12 +712,10 @@ let parse_type_params_opt pars =
         | TVAR n ->
             [n]
         | LPAR ->
-            begin
-                next_token pars;
-                let lst = parse_type_param_list [] in
-                expect pars RPAR;
-                lst
-            end
+            next_token pars;
+            let lst = parse_type_param_list [] in
+            expect pars RPAR;
+            lst
         | _ -> []
     in
     debug_parse_out "parse_type_params_opt";
@@ -699,20 +726,18 @@ let parse_type_def pars =
     let tvl = parse_type_params_opt pars in
     let id = expect_id pars in
     expect pars EQ;
-    let t = match peek_token pars with
+    let td = match peek_token pars with
         | LBRACE -> parse_record_decl pars
         | OR -> parse_variant_decl pars None
         | C_ID cid ->
-            begin
-                next_token pars;
-                if peek_token pars = DOT then
-                    (next_token pars; parse_type_c pars cid)
-                else
-                    parse_variant_decl pars (Some cid)
-            end
-        | _ -> parse_type pars
+            next_token pars;
+            if peek_token pars = DOT then
+                (next_token pars; Type (parse_type pars (Some cid)))
+            else
+                parse_variant_decl pars (Some cid)
+        | _ -> Type (parse_type pars None)
     in
-    let e = TypeDecl (id, tvl, t) in
+    let e = to_expr pars (TypeDecl (id, tvl, td)) in
     debug_parse_out "parse_type_def";
     e
 
@@ -724,7 +749,7 @@ let parse_type_decl pars =
             e
         else begin
             next_token pars;
-            loop (TypeDeclAnd (e, parse_type_def pars))
+            loop @@ to_expr pars (TypeDeclAnd (e, parse_type_def pars))
         end
     in
     let e = loop (parse_type_def pars) in

@@ -119,12 +119,10 @@ let scan_string scan =
         | None ->
             error scan "unexpected eof"
         | _ ->
-            begin
-                let c = get_char scan in
-                Buffer.add_char buffer c;
-                next_char scan;
-                loop ()
-            end
+            let c = get_char scan in
+            Buffer.add_char buffer c;
+            next_char scan;
+            loop ()
     in
     loop ();
     STRING_LIT (Buffer.contents buffer)
@@ -193,7 +191,6 @@ let rec scan_token scan =
     | Some '=' -> scan_token2 '=' EQL EQ
     | Some '!' -> scan_token2 '=' NEQ NOT
     | Some '>' -> scan_token2 '=' GE GT
-    | Some ':' -> scan_token2 '=' ASSIGN COLON
     | Some '|' -> scan_token2 '|' LOR OR
     | Some '&' -> scan_token2 '&' LAND AMP
     | Some '[' -> scan_token2 ']' NULL LSBRA
@@ -202,6 +199,18 @@ let rec scan_token scan =
     | Some '(' -> scan_token2 ')' UNIT LPAR
     | Some '{' -> next_char scan; LBRACE
     | Some '}' -> next_char scan; RBRACE
+    | Some ':' ->
+        begin
+            next_char scan;
+            match peek scan with
+            | Some ':' ->
+                next_char scan;
+                DCOLON
+            | Some '=' ->
+                next_char scan;
+                ASSIGN
+            | _ -> COLON
+        end
     | Some '<' ->
         begin
             next_char scan;

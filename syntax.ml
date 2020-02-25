@@ -11,7 +11,7 @@ type token
     | MODULE | IMPORT | AS | DECL | TYPE | AND | LET | REC | FUN | FN | IF | THEN
     | ELSE | MATCH | WHEN | MUTABLE | WILDCARD | PLUS | STAR | PERCENT | COMMA
     | SEMI | DOT | RANGE | MINUS | RARROW | EQ | EQL | NOT | NEQ | LT | LE
-    | LARROW | GT | GE | COLON | ASSIGN | OR | LOR | AMP | LAND | LSBRA | RSBRA
+    | LARROW | GT | GE | COLON | DCOLON | ASSIGN | OR | LOR | AMP | LAND | LSBRA | RSBRA
     | NULL | LPAR | RPAR | UNIT | LBRACE | RBRACE | SLASH
 
 type token_t = {
@@ -60,7 +60,7 @@ type exp =
     | If of expr * expr * expr
     | Comp of expr list
     | Match of expr * (pattern * expr) list
-    | TypeDecl of ident * int list * typ
+    | TypeDecl of ident * int list * type_decl
     | TypeDeclAnd of expr * expr
     | Module of ident
     | Import of ident * ident option
@@ -91,8 +91,8 @@ let token_to_string = function
     | STAR -> "*" | PERCENT -> "%" | COMMA -> "," | SEMI -> ";" | DOT -> "."
     | RANGE -> ".." | MINUS -> "-" | RARROW -> "->" | EQ -> "=" | EQL -> "=="
     | NOT -> "!" | NEQ -> "!=" | LT -> "<" | LE -> "<=" | LARROW -> "<-"
-    | GT -> ">" | GE -> ">=" | COLON -> ":" | ASSIGN -> ":=" | OR -> "|"
-    | LOR -> "||" | AMP -> "&" | LAND -> "&&" | LSBRA -> "[" | RSBRA -> "]"
+    | GT -> ">" | GE -> ">=" | COLON -> ":" | DCOLON -> "::" | ASSIGN -> ":="
+    | OR -> "|" | LOR -> "||" | AMP -> "&" | LAND -> "&&" | LSBRA -> "[" | RSBRA -> "]"
     | NULL -> "[]" | LPAR -> "(" | RPAR -> ")" | UNIT -> "()" | LBRACE -> "{"
     | RBRACE -> "}" | SLASH -> "/"
 
@@ -169,8 +169,8 @@ let rec expr_to_string = function
         ^ " else " ^ expr_to_string e3 ^ ")"
     | (_, Comp el) -> "{" ^ comp_to_string el ^ "}"
     | (_, Match (e, lst)) ->  "(match " ^ expr_to_string e ^ " {" ^ match_list_to_string lst ^ "})"
-    | (_, TypeDecl (id, tvl, t)) ->
-        "(type " ^ id ^ tvlist_to_string tvl ^ " " ^ type_to_string t ^ ")"
+    | (_, TypeDecl (id, tvl, td)) ->
+        "(type " ^ id ^ tvlist_to_string tvl ^ " = " ^ type_decl_to_string td ^ ")"
     | (_, TypeDeclAnd (e1, e2)) -> expr_to_string e1 ^ " and " ^ expr_to_string e2
     | (_, Module name) ->
         "module " ^ name
@@ -236,10 +236,9 @@ and vlist_to_string = function
     | x::xs -> value_to_string x ^ ", " ^ vlist_to_string xs
 and vcons_to_string = function
     | VCons (lhs, rhs) ->
-        begin match rhs with
+        ( match rhs with
         | VNull -> value_to_string lhs
         | VCons _ -> value_to_string lhs ^ ", " ^ vcons_to_string rhs
-        | _ -> failwith "cons rhs bug"
-        end
+        | _ -> failwith "cons rhs bug")
     | _ -> failwith "cons bug"
 

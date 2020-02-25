@@ -53,7 +53,5 @@ let show_env env =
         print_endline @@ " " ^ name ^ " = " ^ value_to_string !value) env
 
 let show_all_modules () =
-    List.iter (fun (name, tab) ->
-        print_endline @@ "Module " ^ name;
-        show_env tab.env) !all_modules
+    List.iter (fun (name, tab) -> print_endline @@ "Module " ^ name; show_env tab.env) !all_modules
 

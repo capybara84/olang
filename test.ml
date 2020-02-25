@@ -50,7 +50,7 @@ let scanner_test_text = "
 /* 13 */ else match when mutable
 /* 14 */ _ + * % , ; . ..
 /* 15 */ - -> = == ! != < <= <- > >=
-/* 16 */ : := | || & && [ ] []
+/* 16 */ : :: := | || & && [ ] []
 /* 17 */ ( ) () { } /
 /* 18 */"
 
@@ -66,8 +66,8 @@ let scanner_test_tokens = [
     (20,14, SEMI); (22,14, DOT); (24,14, RANGE); (1,15, NEWLINE);
     (10,15, MINUS); (12,15, RARROW); (15,15, EQ); (17,15, EQL); (20,15, NOT); (22,15, NEQ);
     (25,15, LT); (27,15, LE); (30,15, LARROW); (33,15, GT); (35,15, GE); (1,16, NEWLINE);
-    (10,16, COLON); (12,16, ASSIGN); (15,16, OR); (17,16, LOR); (20,16, AMP);
-    (22,16, LAND); (25,16, LSBRA); (27,16, RSBRA); (29,16, NULL); (1,17, NEWLINE);
+    (10,16, COLON); (12,16, DCOLON); (15,16, ASSIGN); (18,16, OR); (20,16, LOR); (23,16, AMP);
+    (25,16, LAND); (28,16, LSBRA); (30,16, RSBRA); (32,16, NULL); (1,17, NEWLINE);
     (10,17, LPAR); (12,17, RPAR); (14,17, UNIT); (17,17, LBRACE); (19,17, RBRACE);
     (21,17, SLASH); (1,18, NEWLINE); (9,18, EOF);
 ]
@@ -86,7 +86,7 @@ let scanner_test verbose =
             end;
             test_eq (c, n, tt) (t.col, t.line, t.token)
                 (Printf.sprintf "(%d:%d,'%s') != (%d:%d,'%s')" c n (token_to_string tt)
-                                    t.col t.line (token_to_string t.token)))
+                    t.col t.line (token_to_string t.token)))
             scanner_test_tokens tokens
     with Invalid_argument s -> test_fail @@ "Invalid_argument " ^ s
         | Error s -> test_fail s);
@@ -192,6 +192,17 @@ let parser_all_tests = [
     ("(1)", (1, IntLit 1));
     ("(1,2)", (1, Tuple [(1, IntLit 1); (1, IntLit 2)]));
     ("(1,2,3)", (1, Tuple [(1, IntLit 1); (1, IntLit 2); (1, IntLit 3)]));
+
+    ("type integer = int", (1, TypeDecl ("integer", [], Type Type.t_int)));
+    ("type c = char and s = string",
+        (1, TypeDeclAnd ((1, TypeDecl ("c", [], Type Type.t_char)),
+            (1, TypeDecl ("s", [], Type Type.t_string)))));
+    ("type c = char and s = string and i = int",
+        (1, TypeDeclAnd ((1, TypeDeclAnd ((1, TypeDecl ("c", [], Type Type.t_char)),
+            (1, TypeDecl ("s", [], Type Type.t_string)))),
+            (1, TypeDecl ("i", [], Type Type.t_int)))));
+    ("type point2d = { mutable x :: int; mutable y :: int }",
+        (1, TypeDecl ("point2d", [], TRecord [("x",Type.t_int,Mutable);("y",Type.t_int,Mutable)])));
 ]
 
 let parser_test verbose =
