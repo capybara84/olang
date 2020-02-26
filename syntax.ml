@@ -251,6 +251,7 @@ let tvar_to_string_src n =
 let rec tname_to_string_src (idl, id) =
     let rec id_list_to_string = function
         | [] -> ""
+        | x::[] -> "\"" ^ x ^ "\""
         | x::xs -> "\"" ^ x ^ "\";" ^ id_list_to_string xs
     in
     "([" ^ id_list_to_string idl ^ "], \"" ^ id ^ "\")"
@@ -258,14 +259,16 @@ let rec tname_to_string_src (idl, id) =
 let rec type_to_string_src = function
     | TUnit -> "TUnit" | TBool -> "TBool" | TInt -> "TInt" | TChar -> "TChar"
     | TFloat -> "TFloat" | TString -> "TString"
-    | TConstr (name, Some t) -> "TConstr (" ^ tname_to_string_src name ^ ", Some " ^ type_to_string t ^ ")"
+    | TConstr (name, Some t) ->
+        "TConstr (" ^ tname_to_string_src name ^ ", Some " ^ type_to_string t ^ ")"
     | TConstr (name, None) -> "TConstr (" ^ tname_to_string_src name ^ ", None)"
     | TTuple tl -> "TTuple [" ^ tuple_to_string_src tl ^ "]"
     | TFun (t1, t2) -> "TFun (" ^ type_to_string_src t1 ^ ", " ^ type_to_string_src t2 ^ ")"
-    | TVar (n, {contents = None}) -> "TVar (" ^ string_of_int n ^ ", {contents=None})"
-    | TVar (_, {contents = Some t}) -> "TVar (0, {contents = Some " ^ type_to_string_src t ^ ")"
+    | TVar (n, {contents = None}) -> "TVar (" ^ string_of_int n ^ ", ref None)"
+    | TVar (_, {contents = Some t}) -> "TVar (0, ref (Some " ^ type_to_string_src t ^ "))"
 and tuple_to_string_src = function
     | [] -> ""
+    | t::[] -> type_to_string_src t
     | t::ts -> type_to_string_src t ^ "; " ^ tuple_to_string_src ts
 
 let rec type_decl_to_string_src = function
@@ -274,15 +277,19 @@ let rec type_decl_to_string_src = function
     | TRecordDecl fl -> "TRecordDecl [" ^ record_to_string_src fl ^ "]"
 and variant_to_string_src = function
     | [] -> ""
-    | (id, None)::xs ->
-        "(\"" ^ id ^ "\", None); " ^ variant_to_string_src xs
-    | (id, Some t)::xs ->
-        "(\"" ^ id ^ "\", Some " ^ type_to_string_src t ^ " ); " ^ variant_to_string_src xs
+    | x::[] -> variant_elem_to_string x
+    | x::xs -> variant_elem_to_string x ^ "; " ^ variant_to_string_src xs
+and variant_elem_to_string = function
+    | (id, None) -> "(\"" ^ id ^ "\", None)"
+    | (id, Some t) -> "(\"" ^ id ^ "\", Some " ^ type_to_string_src t ^ " )"
 and record_to_string_src = function
     | [] -> ""
-    | (id, t, mut)::xs ->
+    | x::[] -> record_elem_to_string x
+    | x::xs -> record_elem_to_string x ^ "; " ^ record_to_string_src xs
+and record_elem_to_string = function
+    | (id, t, mut) ->
         "(\"" ^ id ^ ", " ^ type_to_string_src t ^ ", " ^
-            (if mut = Mutable then "Mutable" else "Immutable") ^ "); " ^ record_to_string_src xs
+            (if mut = Mutable then "Mutable" else "Immutable") ^ ")"
 
 let string_of_binop_src = function
     | BinAdd -> "BinAdd" | BinSub -> "BinSub" | BinMul -> "BinMul"
@@ -316,7 +323,8 @@ let rec expr_to_string_src = function
     | (n, Unary (op, e)) ->
         "(" ^ string_of_int n ^ ", Unary (" ^ string_of_unop_src op ^ ", " ^ expr_to_string_src e ^ "))"
     | (n, Let (id, e)) -> "(" ^ string_of_int n ^ ", Let (\"" ^ id ^ "\", " ^ expr_to_string_src e ^ "))"
-    | (n, LetRec (id, e)) -> "(" ^ string_of_int n ^ ", LetRec (\"" ^ id ^ "\", " ^ expr_to_string_src e ^ "))"
+    | (n, LetRec (id, e)) ->
+        "(" ^ string_of_int n ^ ", LetRec (\"" ^ id ^ "\", " ^ expr_to_string_src e ^ "))"
     | (n, Fn (e1, e2)) ->
         "(" ^ string_of_int n ^ ", Fn (" ^ expr_to_string_src e1 ^ ", " ^ expr_to_string_src e2 ^ "))"
     | (n, Apply (e1, e2)) ->
@@ -326,20 +334,25 @@ let rec expr_to_string_src = function
         ^ expr_to_string_src e2 ^ ", " ^ expr_to_string_src e3 ^ "))"
     | (n, Comp el) -> "(" ^ string_of_int n ^ ", Comp [" ^ comp_to_string_src el ^ "])"
     | (n, Match (e, lst)) ->
-        "(" ^ string_of_int n ^ ", Match (" ^ expr_to_string_src e ^ ", [" ^ match_list_to_string_src lst ^ "]))"
+        "(" ^ string_of_int n ^ ", Match (" ^ expr_to_string_src e ^ ", ["
+        ^ match_list_to_string_src lst ^ "]))"
     | (n, TypeDecl (id, tvl, td)) ->
         "(" ^ string_of_int n ^ ", TypeDecl (\"" ^ id ^ "\", [" ^ tvar_list_to_string_src tvl ^ "], "
             ^ type_decl_to_string_src td ^ "))"
     | (n, TypeDeclAnd (e1, e2)) ->
-        "(" ^ string_of_int n ^ ", TypeDeclAnd " ^ expr_to_string_src e1 ^ ", " ^ expr_to_string e2 ^ ")"
-    | (n, Module name) ->"(" ^ string_of_int n ^ ", Module " ^ name ^ ")"
-    | (n, Import (name, Some rename)) -> "(" ^ string_of_int n ^ ", Import (" ^ name ^ ", Some " ^ rename ^ "))"
+        "(" ^ string_of_int n ^ ", TypeDeclAnd " ^ expr_to_string_src e1 ^ ", "
+        ^ expr_to_string_src e2 ^ ")"
+    | (n, Module name) -> "(" ^ string_of_int n ^ ", Module " ^ name ^ ")"
+    | (n, Import (name, Some rename)) ->
+        "(" ^ string_of_int n ^ ", Import (" ^ name ^ ", Some " ^ rename ^ "))"
     | (n, Import (name, None)) -> "(" ^ string_of_int n ^ ", Import " ^ name ^ ", None)"
 and tuple_to_string_src = function
     | [] -> ""
+    | x::[] -> expr_to_string_src x
     | x::xs -> expr_to_string_src x ^ "; " ^ tuple_to_string_src xs
 and comp_to_string_src = function
     | [] -> ""
+    | x::[] -> expr_to_string_src x
     | x::xs -> expr_to_string_src x ^ "; " ^ comp_to_string_src xs
 and match_list_to_string_src = function
     | [] -> ""
@@ -355,14 +368,16 @@ and pattern_to_string_src = function
     | PatString s -> "PatString \"" ^ s ^ "\""
     | PatIdent id -> "PatIdent " ^ id
     | PatTuple pl -> "PatTuple [" ^ pat_list_to_string_src pl ^ "]"
-    | PatCons (p1, p2) -> "PatCons (" ^ pattern_to_string_src p1 ^ ", "
-        ^ pattern_to_string_src p2 ^ ")"
+    | PatCons (p1, p2) ->
+        "PatCons (" ^ pattern_to_string_src p1 ^ ", " ^ pattern_to_string_src p2 ^ ")"
     | PatAs (pat, id) -> "PatAs (" ^ pattern_to_string_src pat ^ ", \"" ^ id ^ "\")"
     | PatOr (p1, p2) -> "PatOr (" ^ pattern_to_string_src p1 ^ ", " ^ pattern_to_string_src p2 ^ ")"
 and pat_list_to_string_src = function
     | [] -> ""
+    | x::[] -> pattern_to_string_src x
     | x::xs -> pattern_to_string_src x ^ "; " ^ pat_list_to_string_src xs
 and tvar_list_to_string_src = function
     | [] -> ""
+    | x::[] -> tvar_to_string_src x
     | x::xs -> tvar_to_string_src x ^ "; " ^ tvar_list_to_string_src xs
 
