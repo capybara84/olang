@@ -658,8 +658,6 @@ let parse_variant_elem pars cid_opt =
 
 let parse_variant_decl pars cid_opt =
     debug_parse_in "parse_variant_decl";
-    if peek_token pars = OR then
-        next_token pars;
     let rec loop res =
         if peek_token pars = OR then begin
             next_token pars;
@@ -668,6 +666,10 @@ let parse_variant_decl pars cid_opt =
         end else
             List.rev res
     in
+    if cid_opt = None then begin
+        if peek_token pars = OR then
+            next_token pars
+    end;
     let (id, t) = parse_variant_elem pars cid_opt in
     let res = TVariantDecl (loop ([(id, t)])) in
     debug_parse_out "parse_variant_decl";
