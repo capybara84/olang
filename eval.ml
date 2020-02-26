@@ -219,9 +219,15 @@ and load_source filename =
             match e with
             | (_, Eof) -> ()
             | _ ->
-                let v = eval_top e in
-                if v <> VUnit then
-                    print_endline "Warning: The expression should have type unit";
+                if !g_verbose then
+                    print_endline @@ expr_to_string e;
+                if !g_output_source then
+                    print_endline @@ expr_to_string_src e
+                else begin
+                    let v = eval_top e in
+                    if v <> VUnit then
+                        print_endline "Warning: The expression should have type unit"
+                end;
                 loop ()
         in loop ()
     with Error s | Sys_error s -> print_endline s

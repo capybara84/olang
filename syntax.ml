@@ -2,6 +2,7 @@
 exception Error of string
 
 let g_verbose = ref false
+let g_output_source = ref false
 
 type ident = string
 
@@ -244,12 +245,15 @@ and vcons_to_string = function
 
 
 (*---------------------------------*)
+let tvar_to_string_src n =
+    "TVAR " ^ string_of_int n
+
 let rec tname_to_string_src (idl, id) =
     let rec id_list_to_string = function
         | [] -> ""
         | x::xs -> "\"" ^ x ^ "\";" ^ id_list_to_string xs
     in
-    "(" ^ id_list_to_string idl ^ ", \"" ^ id ^ "\")"
+    "([" ^ id_list_to_string idl ^ "], \"" ^ id ^ "\")"
 
 let rec type_to_string_src = function
     | TUnit -> "TUnit" | TBool -> "TBool" | TInt -> "TInt" | TChar -> "TChar"
@@ -265,20 +269,20 @@ and tuple_to_string_src = function
     | t::ts -> type_to_string_src t ^ "; " ^ tuple_to_string_src ts
 
 let rec type_decl_to_string_src = function
-    | TTypeDecl t -> type_to_string_src t
-    | TVariantDecl vl -> variant_to_string_src vl
-    | TRecordDecl fl -> record_to_string_src fl
+    | TTypeDecl t -> "TTypeDecl " ^ type_to_string_src t
+    | TVariantDecl vl -> "TVariantDecl [" ^ variant_to_string_src vl ^ "]"
+    | TRecordDecl fl -> "TRecordDecl [" ^ record_to_string_src fl ^ "]"
 and variant_to_string_src = function
     | [] -> ""
     | (id, None)::xs ->
-        " | " ^ id ^ variant_to_string_src xs
+        "(\"" ^ id ^ "\", None); " ^ variant_to_string_src xs
     | (id, Some t)::xs ->
-        " | " ^ id ^ " " ^ type_to_string_src t ^ variant_to_string_src xs
+        "(\"" ^ id ^ "\", Some " ^ type_to_string_src t ^ " ); " ^ variant_to_string_src xs
 and record_to_string_src = function
     | [] -> ""
     | (id, t, mut)::xs ->
-        (if mut = Mutable then " mutable " else " ") ^ id ^ " :: " ^ type_to_string_src t ^ ";"
-            ^ record_to_string_src xs
+        "(\"" ^ id ^ ", " ^ type_to_string_src t ^ ", " ^
+            (if mut = Mutable then "Mutable" else "Immutable") ^ "); " ^ record_to_string_src xs
 
 let string_of_binop_src = function
     | BinAdd -> "BinAdd" | BinSub -> "BinSub" | BinMul -> "BinMul"
@@ -292,42 +296,52 @@ let string_of_unop_src = function
     | UMinus -> "UMinus"
 
 let rec expr_to_string_src = function
-    | (_, Eof) -> "Eof" | (_, Unit) -> "Unit" | (_, Null) -> "Null" | (_, WildCard) -> "WildCard"
-    | (_, BoolLit b) -> "(BoolLit " ^ string_of_bool b ^ ")"
-    | (_, IntLit n) -> "(IntLit " ^ string_of_int n ^ ")"
-    | (_, CharLit c) -> "(CharLit '" ^ String.make 1 c ^ "')"
-    | (_, FloatLit f) -> "(FloatLit " ^ string_of_float f ^ ")"
-    | (_, StringLit s) -> "(StringLit \"" ^ s ^ "\")"
-    | (_, Ident id) -> "(Ident \"" ^ id ^ "\")"
-    | (_, IdentMod (id, e)) -> "(IdentMod (\"" ^ id ^ "\", " ^ expr_to_string_src e ^ ")"
-    | (_, Record (e, id)) -> "(Record (" ^ expr_to_string_src e ^ ", \"" ^ id ^ "\"))"
-    | (_, Tuple el) -> "(Tuple [" ^ tuple_to_string_src el ^ "])"
-    | (_, Binary (op, lhs, rhs)) -> "(Binary (" ^ string_of_binop_src op ^ ", "
+    | (n, Eof) -> "(" ^ string_of_int n ^ ", Eof)"
+    | (n, Unit) -> "(" ^ string_of_int n ^ ", Unit)"
+    | (n, Null) -> "(" ^ string_of_int n ^ ", Null)"
+    | (n, WildCard) -> "(" ^ string_of_int n ^ ", WildCard)"
+    | (n, BoolLit b) -> "(" ^ string_of_int n ^ ", BoolLit " ^ string_of_bool b ^ ")"
+    | (n, IntLit i) -> "(" ^ string_of_int n ^ ", IntLit " ^ string_of_int i ^ ")"
+    | (n, CharLit c) -> "(" ^ string_of_int n ^ ", CharLit '" ^ String.make 1 c ^ "')"
+    | (n, FloatLit f) -> "(" ^ string_of_int n ^ ", FloatLit " ^ string_of_float f ^ ")"
+    | (n, StringLit s) -> "(" ^ string_of_int n ^ ", StringLit \"" ^ s ^ "\")"
+    | (n, Ident id) -> "(" ^ string_of_int n ^ ", Ident \"" ^ id ^ "\")"
+    | (n, IdentMod (id, e)) ->
+        "(" ^ string_of_int n ^ ", IdentMod (\"" ^ id ^ "\", " ^ expr_to_string_src e ^ ")"
+    | (n, Record (e, id)) -> "(" ^ string_of_int n ^ ", Record (" ^ expr_to_string_src e ^ ", \"" ^ id ^ "\"))"
+    | (n, Tuple el) -> "(" ^ string_of_int n ^ ", Tuple [" ^ tuple_to_string_src el ^ "])"
+    | (n, Binary (op, lhs, rhs)) ->
+        "(" ^ string_of_int n ^ ", Binary (" ^ string_of_binop_src op ^ ", "
         ^ expr_to_string_src lhs ^ ", " ^ expr_to_string_src rhs ^ "))"
-    | (_, Unary (op, e)) -> "(Unary (" ^ string_of_unop_src op ^ ", " ^ expr_to_string_src e ^ "))"
-    | (_, Let (id, e)) -> "(Let (\"" ^ id ^ "\", " ^ expr_to_string_src e ^ "))"
-    | (_, LetRec (id, e)) -> "(LetRec (\"" ^ id ^ "\", " ^ expr_to_string_src e ^ "))"
-    | (_, Fn (e1, e2)) -> "(Fn (" ^ expr_to_string_src e1 ^ ", " ^ expr_to_string_src e2 ^ "))"
-    | (_, Apply (e1, e2)) -> "(Apply (" ^ expr_to_string_src e1 ^ ", " ^ expr_to_string_src e2 ^ "))"
-    | (_, If (e1, e2, e3)) -> "(If (" ^ expr_to_string_src e1 ^ ", " ^ expr_to_string_src e2
-        ^ ", " ^ expr_to_string_src e3 ^ "))"
-    | (_, Comp el) -> "(Comp [" ^ comp_to_string_src el ^ "])"
-    | (_, Match (e, lst)) ->  "(Match (" ^ expr_to_string_src e ^ ", ["
-        ^ match_list_to_string_src lst ^ "]))"
-    | (_, TypeDecl (id, tvl, td)) ->
-        "(TypeDecl (\"" ^ id ^ "\", [" ^ tvar_list_to_string_src tvl ^ "], "
+    | (n, Unary (op, e)) ->
+        "(" ^ string_of_int n ^ ", Unary (" ^ string_of_unop_src op ^ ", " ^ expr_to_string_src e ^ "))"
+    | (n, Let (id, e)) -> "(" ^ string_of_int n ^ ", Let (\"" ^ id ^ "\", " ^ expr_to_string_src e ^ "))"
+    | (n, LetRec (id, e)) -> "(" ^ string_of_int n ^ ", LetRec (\"" ^ id ^ "\", " ^ expr_to_string_src e ^ "))"
+    | (n, Fn (e1, e2)) ->
+        "(" ^ string_of_int n ^ ", Fn (" ^ expr_to_string_src e1 ^ ", " ^ expr_to_string_src e2 ^ "))"
+    | (n, Apply (e1, e2)) ->
+        "(" ^ string_of_int n ^ ", Apply (" ^ expr_to_string_src e1 ^ ", " ^ expr_to_string_src e2 ^ "))"
+    | (n, If (e1, e2, e3)) ->
+        "(" ^ string_of_int n ^ ", If (" ^ expr_to_string_src e1 ^ ", "
+        ^ expr_to_string_src e2 ^ ", " ^ expr_to_string_src e3 ^ "))"
+    | (n, Comp el) -> "(" ^ string_of_int n ^ ", Comp [" ^ comp_to_string_src el ^ "])"
+    | (n, Match (e, lst)) ->
+        "(" ^ string_of_int n ^ ", Match (" ^ expr_to_string_src e ^ ", [" ^ match_list_to_string_src lst ^ "]))"
+    | (n, TypeDecl (id, tvl, td)) ->
+        "(" ^ string_of_int n ^ ", TypeDecl (\"" ^ id ^ "\", [" ^ tvar_list_to_string_src tvl ^ "], "
             ^ type_decl_to_string_src td ^ "))"
-    | (_, TypeDeclAnd (e1, e2)) -> "(" ^ expr_to_string_src e1 ^ ", " ^ expr_to_string e2 ^ ")"
-    | (_, Module name) -> "(Module " ^ name ^ ")"
-    | (_, Import (name, Some rename)) -> "(Import (" ^ name ^ ", Some " ^ rename ^ "))"
-    | (_, Import (name, None)) -> "(Import " ^ name ^ ", None)"
-and tuple_to_string_src e in
+    | (n, TypeDeclAnd (e1, e2)) ->
+        "(" ^ string_of_int n ^ ", TypeDeclAnd " ^ expr_to_string_src e1 ^ ", " ^ expr_to_string e2 ^ ")"
+    | (n, Module name) ->"(" ^ string_of_int n ^ ", Module " ^ name ^ ")"
+    | (n, Import (name, Some rename)) -> "(" ^ string_of_int n ^ ", Import (" ^ name ^ ", Some " ^ rename ^ "))"
+    | (n, Import (name, None)) -> "(" ^ string_of_int n ^ ", Import " ^ name ^ ", None)"
+and tuple_to_string_src = function
     | [] -> ""
     | x::xs -> expr_to_string_src x ^ "; " ^ tuple_to_string_src xs
 and comp_to_string_src = function
     | [] -> ""
     | x::xs -> expr_to_string_src x ^ "; " ^ comp_to_string_src xs
-and match_list_to_string_src lst in
+and match_list_to_string_src = function
     | [] -> ""
     | (pat, e) :: rest ->
         pattern_to_string_src pat ^ ", " ^ expr_to_string_src e ^ "; " ^  match_list_to_string_src rest
@@ -351,3 +365,4 @@ and pat_list_to_string_src = function
 and tvar_list_to_string_src = function
     | [] -> ""
     | x::xs -> tvar_to_string_src x ^ "; " ^ tvar_list_to_string_src xs
+

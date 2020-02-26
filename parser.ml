@@ -106,11 +106,16 @@ let peek_token pars = pars.token.token
 
 let next_token pars =
     pars.token <- Scanner.get_token pars.scanner;
-    debug_token @@ "token = " ^ token_to_string @@ peek_token pars
+    debug_token @@ get_source_position pars ^ ": token = " ^ token_to_string @@ peek_token pars
 
 let is_type_name pars =
     match peek_token pars with
     | C_ID _ | ID _ -> true
+    | _ -> false
+
+let is_type pars =
+    match peek_token pars with
+    | TVAR _ | C_ID _ | ID _ | LPAR -> true
     | _ -> false
 
 let is_field_decl pars =
@@ -635,11 +640,18 @@ let parse_variant_elem pars cid_opt =
                 | C_ID cid ->
                     begin
                         next_token pars;
-                        (cid, parse_type pars None)
+                        if is_type pars then
+                            (cid, Some (parse_type pars None))
+                        else
+                            (cid, None)
                     end
                 | t -> error pars ("expect Capitalized ID at '" ^ token_to_string t ^ "'")
             end
-        | Some cid -> (cid, parse_type pars None)
+        | Some cid ->
+            if is_type pars then
+                (cid, Some (parse_type pars None))
+            else
+                (cid, None)
     in
     debug_parse_out "parse_variant_elem";
     res
@@ -652,12 +664,12 @@ let parse_variant_decl pars cid_opt =
         if peek_token pars = OR then begin
             next_token pars;
             let (id, t) = parse_variant_elem pars None in
-            loop ((id, Some t)::res)
+            loop ((id, t)::res)
         end else
             List.rev res
     in
     let (id, t) = parse_variant_elem pars cid_opt in
-    let res = TVariantDecl (loop ([(id, Some t)])) in
+    let res = TVariantDecl (loop ([(id, t)])) in
     debug_parse_out "parse_variant_decl";
     res
 

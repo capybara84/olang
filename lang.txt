@@ -79,10 +79,6 @@ constr_type
 
 type_name
     = { C_ID '.' } ID
-(*
-    | UNIT | BOOL | INT | CHAR | FLOAT | STRING
-    | LIST | REF
-*)
 
 logical_expr
     = equal_expr {logical_op equal_expr}

@@ -1,6 +1,6 @@
 type integer = int
 type c = char and s = string
-type c = char and s = string and i = int
+type x = char and y = string and z = int
 type f = unit -> int
 type f = int -> int -> int
 type 'a f = 'a -> 'a -> 'a
