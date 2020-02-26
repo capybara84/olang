@@ -242,6 +242,55 @@ and vcons_to_string = function
         | _ -> failwith "cons rhs bug")
     | _ -> failwith "cons bug"
 
+
+(*---------------------------------*)
+let rec tname_to_string_src (idl, id) =
+    let rec id_list_to_string = function
+        | [] -> ""
+        | x::xs -> "\"" ^ x ^ "\";" ^ id_list_to_string xs
+    in
+    "(" ^ id_list_to_string idl ^ ", \"" ^ id ^ "\")"
+
+let rec type_to_string_src = function
+    | TUnit -> "TUnit" | TBool -> "TBool" | TInt -> "TInt" | TChar -> "TChar"
+    | TFloat -> "TFloat" | TString -> "TString"
+    | TConstr (name, Some t) -> "TConstr (" ^ tname_to_string_src name ^ ", Some " ^ type_to_string t ^ ")"
+    | TConstr (name, None) -> "TConstr (" ^ tname_to_string_src name ^ ", None)"
+    | TTuple tl -> "TTuple [" ^ tuple_to_string_src tl ^ "]"
+    | TFun (t1, t2) -> "TFun (" ^ type_to_string_src t1 ^ ", " ^ type_to_string_src t2 ^ ")"
+    | TVar (n, {contents = None}) -> "TVar (" ^ string_of_int n ^ ", {contents=None})"
+    | TVar (_, {contents = Some t}) -> "TVar (0, {contents = Some " ^ type_to_string_src t ^ ")"
+and tuple_to_string_src = function
+    | [] -> ""
+    | t::ts -> type_to_string_src t ^ "; " ^ tuple_to_string_src ts
+
+let rec type_decl_to_string_src = function
+    | TTypeDecl t -> type_to_string_src t
+    | TVariantDecl vl -> variant_to_string_src vl
+    | TRecordDecl fl -> record_to_string_src fl
+and variant_to_string_src = function
+    | [] -> ""
+    | (id, None)::xs ->
+        " | " ^ id ^ variant_to_string_src xs
+    | (id, Some t)::xs ->
+        " | " ^ id ^ " " ^ type_to_string_src t ^ variant_to_string_src xs
+and record_to_string_src = function
+    | [] -> ""
+    | (id, t, mut)::xs ->
+        (if mut = Mutable then " mutable " else " ") ^ id ^ " :: " ^ type_to_string_src t ^ ";"
+            ^ record_to_string_src xs
+
+let string_of_binop_src = function
+    | BinAdd -> "BinAdd" | BinSub -> "BinSub" | BinMul -> "BinMul"
+    | BinDiv -> "BinDiv" | BinMod -> "BinMod" | BinLT -> "BinLT"
+    | BinLE -> "BinLE" | BinGT -> "BinGT" | BinGE -> "BinGE"
+    | BinEql -> "BinEql" | BinNeq -> "BinNeq" | BinLor -> "BinLor"
+    | BinLand -> "BinLand" | BinCons -> "BinCons"
+
+let string_of_unop_src = function
+    | UNot -> "UNot"
+    | UMinus -> "UMinus"
+
 let rec expr_to_string_src = function
     | (_, Eof) -> "Eof" | (_, Unit) -> "Unit" | (_, Null) -> "Null" | (_, WildCard) -> "WildCard"
     | (_, BoolLit b) -> "(BoolLit " ^ string_of_bool b ^ ")"
@@ -252,8 +301,8 @@ let rec expr_to_string_src = function
     | (_, Ident id) -> "(Ident \"" ^ id ^ "\")"
     | (_, IdentMod (id, e)) -> "(IdentMod (\"" ^ id ^ "\", " ^ expr_to_string_src e ^ ")"
     | (_, Record (e, id)) -> "(Record (" ^ expr_to_string_src e ^ ", \"" ^ id ^ "\"))"
-    | (_, Tuple el) -> "(Tuple (" ^ tuple_to_string_src el ^ "))"
-    | (_, Binary (op, lhs, rhs)) -> "(Binary (" ^ string_of_binop op ^ ", "
+    | (_, Tuple el) -> "(Tuple [" ^ tuple_to_string_src el ^ "])"
+    | (_, Binary (op, lhs, rhs)) -> "(Binary (" ^ string_of_binop_src op ^ ", "
         ^ expr_to_string_src lhs ^ ", " ^ expr_to_string_src rhs ^ "))"
     | (_, Unary (op, e)) -> "(Unary (" ^ string_of_unop_src op ^ ", " ^ expr_to_string_src e ^ "))"
     | (_, Let (id, e)) -> "(Let (\"" ^ id ^ "\", " ^ expr_to_string_src e ^ "))"
@@ -262,17 +311,43 @@ let rec expr_to_string_src = function
     | (_, Apply (e1, e2)) -> "(Apply (" ^ expr_to_string_src e1 ^ ", " ^ expr_to_string_src e2 ^ "))"
     | (_, If (e1, e2, e3)) -> "(If (" ^ expr_to_string_src e1 ^ ", " ^ expr_to_string_src e2
         ^ ", " ^ expr_to_string_src e3 ^ "))"
-    | (_, Comp el) -> "(Comp " ^ comp_to_string_src el ^ ")"
-    | (_, Match (e, lst)) ->  "(Match (" ^ expr_to_string_src e ^ ", "
-        ^ match_list_to_string_src lst ^ "))"
+    | (_, Comp el) -> "(Comp [" ^ comp_to_string_src el ^ "])"
+    | (_, Match (e, lst)) ->  "(Match (" ^ expr_to_string_src e ^ ", ["
+        ^ match_list_to_string_src lst ^ "]))"
     | (_, TypeDecl (id, tvl, td)) ->
-        "(TypeDecl (\"" ^ id ^ "\", " ^ tvlist_to_string_src tvl ^ ", "
+        "(TypeDecl (\"" ^ id ^ "\", [" ^ tvar_list_to_string_src tvl ^ "], "
             ^ type_decl_to_string_src td ^ "))"
     | (_, TypeDeclAnd (e1, e2)) -> "(" ^ expr_to_string_src e1 ^ ", " ^ expr_to_string e2 ^ ")"
     | (_, Module name) -> "(Module " ^ name ^ ")"
     | (_, Import (name, Some rename)) -> "(Import (" ^ name ^ ", Some " ^ rename ^ "))"
     | (_, Import (name, None)) -> "(Import " ^ name ^ ", None)"
-and tuple_to_string e in
+and tuple_to_string_src e in
+    | [] -> ""
+    | x::xs -> expr_to_string_src x ^ "; " ^ tuple_to_string_src xs
+and comp_to_string_src = function
+    | [] -> ""
+    | x::xs -> expr_to_string_src x ^ "; " ^ comp_to_string_src xs
 and match_list_to_string_src lst in
-and tvlist_to_string_src lhs in
-and type_decl_to_string td
+    | [] -> ""
+    | (pat, e) :: rest ->
+        pattern_to_string_src pat ^ ", " ^ expr_to_string_src e ^ "; " ^  match_list_to_string_src rest
+and pattern_to_string_src = function
+    | PatNull -> "PatNull"
+    | PatWildCard -> "PatWildCard"
+    | PatBool b -> "PatBool " ^ string_of_bool b
+    | PatInt n -> "PatInt " ^ string_of_int n
+    | PatChar c -> "PatChar '" ^ String.make 1 c ^ "'"
+    | PatFloat f -> "PatFloat " ^ string_of_float f
+    | PatString s -> "PatString \"" ^ s ^ "\""
+    | PatIdent id -> "PatIdent " ^ id
+    | PatTuple pl -> "PatTuple [" ^ pat_list_to_string_src pl ^ "]"
+    | PatCons (p1, p2) -> "PatCons (" ^ pattern_to_string_src p1 ^ ", "
+        ^ pattern_to_string_src p2 ^ ")"
+    | PatAs (pat, id) -> "PatAs (" ^ pattern_to_string_src pat ^ ", \"" ^ id ^ "\")"
+    | PatOr (p1, p2) -> "PatOr (" ^ pattern_to_string_src p1 ^ ", " ^ pattern_to_string_src p2 ^ ")"
+and pat_list_to_string_src = function
+    | [] -> ""
+    | x::xs -> pattern_to_string_src x ^ "; " ^ pat_list_to_string_src xs
+and tvar_list_to_string_src = function
+    | [] -> ""
+    | x::xs -> tvar_to_string_src x ^ "; " ^ tvar_list_to_string_src xs
