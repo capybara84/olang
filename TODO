@@ -8,17 +8,6 @@
 
 
 ーー
-TConstr ("list", Some int)
-TConstr ("Some", Some int)
-が、
-int list
-int Some
-なのか
-list int
-Some int
-なのか
-区別つかないのがまずい
-ーー
 Parser.to_expr がいまいち
 パースし終わって最終的にexpからexprに変換する時に使っているので、
 行番号がだいたい次の行になってしまう。

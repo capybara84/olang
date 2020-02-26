@@ -593,7 +593,7 @@ let rec parse_constr_type pars cid_opt =
                         expect pars RPAR;
                         TTuple tl
                     end
-                | t -> error pars ("syntax error at '" ^ token_to_string t ^ "'"))
+                | _ -> failwith "parse_constr_type bug")
         in
         if is_type_name pars then
             TConstr (parse_type_name pars None, Some t)
@@ -761,10 +761,11 @@ let parse_type_decl pars =
     next_token pars;
     let rec loop lst =
         next_token pars;
-        let e = parse_type_def pars in
+        let e2 = parse_type_def pars in
+        let e = to_expr pars (TypeDeclAnd (e, e2)) in
         if peek_token pars <> AND then
-            List.rev (e::lst)
-        else loop (e::lst)
+            e
+        else loop e
     in
     let res =
         let e = parse_type_def pars in
@@ -772,7 +773,7 @@ let parse_type_decl pars =
             e
         else begin
             let lst = loop [e] in
-            to_expr pars (TypeDeclAnd lst)
+            List.fold_right (fun a b -> TypeDeclAnd (a, b)) lst 
         end
     in
     debug_parse_out "parse_type_decl";

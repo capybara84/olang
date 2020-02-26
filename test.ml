@@ -194,32 +194,68 @@ let parser_all_tests = [
     ("(1,2,3)", (1, Tuple [(1, IntLit 1); (1, IntLit 2); (1, IntLit 3)]));
 
     ("type integer = int", (1, TypeDecl ("integer", [], TTypeDecl (TConstr (([], "int"), None)))));
-
     ("type c = char and s = string",
-        (1, TypeDeclAnd ((1, TypeDecl ("c", [], TTypeDecl Type.t_char)),
-            (1, TypeDecl ("s", [], TTypeDecl Type.t_string)))));
-    ("type c = char and s = string and i = int",
-        (1, TypeDeclAnd ((1, TypeDeclAnd ((1, TypeDecl ("c", [], TTypeDecl Type.t_char)),
-            (1, TypeDecl ("s", [], TTypeDecl Type.t_string)))),
-            (1, TypeDecl ("i", [], TTypeDecl Type.t_int)))));
+        (1, TypeDeclAnd [(1, TypeDecl ("c", [], TTypeDecl (TConstr (([], "char"), None))));
+            (1, TypeDecl ("s", [], TTypeDecl (TConstr (([], "string"), None))))]));
+    ("type x = char and y = string and z = int",
+        (1, TypeDeclAnd [(1, TypeDecl ("x", [], TTypeDecl (TConstr (([], "char"), None))));
+            (1, TypeDecl ("y", [], TTypeDecl (TConstr (([], "string"), None))));
+            (1, TypeDecl ("z", [], TTypeDecl (TConstr (([], "int"), None))))]));
     ("type f = unit -> int",
-        (1, TypeDecl ("f", [], TTypeDecl (TFun (Type.t_unit, Type.t_int)))));
+        (1, TypeDecl ("f", [], TTypeDecl (TFun (TConstr (([], "unit"), None),
+            TConstr (([], "int"), None))))));
+    ("type f = int -> int -> int",
+        (1, TypeDecl ("f", [], TTypeDecl (TFun (TConstr (([], "int"), None),
+            TFun (TConstr (([], "int"), None), TConstr (([], "int"), None)))))));
+    ("type 'a f = 'a -> 'a -> 'a",
+        (1, TypeDecl ("f", [0], TTypeDecl (TFun (TVar (0, ref None),
+            TFun (TVar (0, ref None), TVar (0, ref None)))))));
+    ("type 'a x = 'a", (1, TypeDecl ("x", [0], TTypeDecl (TVar (0, ref None)))));
     ("type t = int * char",
-        (1, TypeDecl ("t", [], TTypeDecl (TTuple [Type.t_int; Type.t_char]))));
-    ("type f = (float)",
-        (1, TypeDecl ("f", [], TTypeDecl Type.t_float)));
+        (1, TypeDecl ("t", [], TTypeDecl (TTuple [TConstr (([], "int"), None);
+            TConstr (([], "char"), None)]))));
+    ("type f = (float)", (1, TypeDecl ("f", [], TTypeDecl (TConstr (([], "float"), None)))));
     ("type l = int list",
-        (1, TypeDecl ("l", [], TTypeDecl (TConstr (([], "list"), Some Type.t_int)))));
-    ("type point2d = { mutable x :: int; mutable y :: int }",
-        (1, TypeDecl ("point2d", [], TRecordDecl [("x",Type.t_int,Mutable);("y",Type.t_int,Mutable)])));
-    ("type 'a point2d = { x :: 'a; y :: 'a }",
+        (1, TypeDecl ("l", [], TTypeDecl (TConstr (([], "list"), Some (TConstr (([], "int"), None)))))));
+    ("type 'a r = 'a ref",
+        (1, TypeDecl ("r", [0], TTypeDecl (TConstr (([], "ref"), Some (TVar (0, ref None)))))));
+    ("type 'a pair = ('a * 'a)",
+        (1, TypeDecl ("pair", [0], TTypeDecl (TTuple [TVar (0, ref None); TVar (0, ref None)]))));
+    ("type  ('a, 'b) pair = ('a * 'b)",
+        (1, TypeDecl ("pair", [0; 1], TTypeDecl (TTuple [TVar (0, ref None); TVar (1, ref None)]))));
+    ("type point2d = { mutable x :: int; mutable y :: int; }",
+        (1, TypeDecl ("point2d", [],
+            TRecordDecl [("x", TConstr (([], "int"), None), Mutable);
+                ("y", TConstr (([], "int"), None), Mutable)])));
+    ("type 'a point2d = { x :: 'a; y :: 'a; }",
         (1, TypeDecl ("point2d", [0],
-            TRecordDecl [("x",TVar (0, ref None),Immutable);("y", TVar (0, ref None),Immutable)])));
-    ("type ('a,'b,'c) atob = { a :: 'a; b :: 'b; c :: 'c }",
-        (1, TypeDecl ("atob", [0;1;2],
-            TRecordDecl [("a",TVar (0, ref None),Immutable);
-                ("b", TVar (1, ref None),Immutable);
-                ("c", TVar (2, ref None),Immutable)])));
+            TRecordDecl [("x", TVar (0, ref None), Immutable);
+                ("y", TVar (0, ref None), Immutable)])));
+    ("type ('a, 'b, 'c) atob = { a :: 'a; b :: 'b; c :: 'c; }",
+        (1, TypeDecl ("atob", [0; 1; 2],
+            TRecordDecl [("a", TVar (0, ref None), Immutable);
+                ("b", TVar (1, ref None), Immutable); ("c", TVar (2, ref None), Immutable)])));
+    ("type color = | Red | Green | Blue",
+        (1, TypeDecl ("color", [], TVariantDecl [("Red", None); ("Green", None); ("Blue", None)])));
+    ("type color = Red | Green | Blue",
+        (1, TypeDecl ("color", [], TVariantDecl [("Red", None); ("Green", None); ("Blue", None)])));
+    ("type color = Red | Green | Blue | RGB (int * int * int)",
+        (1, TypeDecl ("color", [],
+            TVariantDecl [("Red", None); ("Green", None); ("Blue", None);
+                ("RGB", Some (TTuple [TConstr (([], "int"), None);
+                    TConstr (([], "int"), None); TConstr (([], "int"), None)]))])));
+    ("type 'a option = None | Some 'a",
+        (1, TypeDecl ("option", [0],
+            TVariantDecl [("None", None); ("Some", Some (TVar (0, ref None)))])));
+    ("type 'a tree = Node 'a | Leaf (('a tree) * ('a tree))",
+        (1, TypeDecl ("tree", [0],
+            TVariantDecl [("Node", Some (TVar (0, ref None)));
+                ("Leaf", Some (TTuple [TConstr (([], "tree"), Some (TVar (0, ref None)));
+                    TConstr (([], "tree"), Some (TVar (0, ref None)))]))])));
+    ("type itree = int tree",
+        (1, TypeDecl ("itree", [], TTypeDecl (TConstr (([], "tree"), Some (TConstr (([], "int"), None)))))));
+    ("type lt = List.t",
+        (1, TypeDecl ("lt", [], TTypeDecl (TConstr ((["List"], "t"), None)))));
 ]
 
 let parser_test verbose =
@@ -364,8 +400,6 @@ let eval_test verbose =
 let test () =
     scanner_test !g_verbose;
     parser_test !g_verbose;
-(*
     eval_test !g_verbose;
-*)
     test_report ()
 
