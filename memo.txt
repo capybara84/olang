@@ -86,6 +86,9 @@ match a {
     let x = & 0
     x := *x + 1
     
+    let x = ref 0
+    x := *x + 1
+
 * comment
 
     // ...

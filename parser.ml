@@ -157,6 +157,10 @@ let rec expr_list_length = function
     | Binary (BinCons, _, xs) -> 1 + expr_list_length (snd xs)
     | _ -> failwith "expr_list bug"
 
+(*
+list_expr
+    = [expr {',' expr}]
+*)
 let rec parse_list_expr pars =
     debug_parse_in "parse_list_expr";
     let lhs = parse_expr pars in
@@ -171,6 +175,12 @@ let rec parse_list_expr pars =
     debug_parse_out "parse_list_expr";
     to_expr pars (Binary (BinCons, lhs, rhs))
 
+(*
+c_id_expr
+    = C_ID {'.' C_ID} ['{' [expr {',' expr}] '}']
+    | C_ID {'.' C_ID} expr
+    | C_ID ['.' id_expr]
+*)
 and parse_c_id_expr pars =
     debug_parse_in "parse_c_id_expr";
     let cid = expect_c_id pars in
@@ -190,6 +200,10 @@ and parse_c_id_expr pars =
     debug_parse_out "parse_c_id_expr";
     e
 
+(*
+id_expr
+    = ID {'.' ID} [assign]
+*)
 and parse_id_expr pars =
     debug_parse_in "parse_id_expr";
     let lhs = to_expr pars (Ident (expect_id pars)) in
@@ -205,6 +219,13 @@ and parse_id_expr pars =
     debug_parse_out "parse_id_expr";
     e
 
+(*
+simple_expr
+    = id_expr | c_id_expr
+    | BOOL_LIT | INT_LIT | CHAR_LIT | FLOAT_LIT | STRING_LIT 
+    | '()' | '(' expr {',' expr} ')'
+    | '[' [expr {',' expr}] ']'
+*)
 and parse_simple pars =
     debug_parse_in "parse_simple";
     let res =
@@ -275,6 +296,10 @@ and parse_simple pars =
     debug_parse_out "parse_simple";
     res
 
+(*
+unary_expr
+    = [unary_op] simple_expr
+*)
 and parse_unary pars =
     debug_parse_in "parse_unary";
     let op = peek_token pars in
@@ -289,6 +314,10 @@ and parse_unary pars =
     debug_parse_out "parse_unary";
     res
 
+(*
+apply_expr
+    = unary_expr {simple_expr}
+*)
 and parse_apply pars =
     debug_parse_in "parse_apply";
     let rec parse_apply_rhs lhs =
@@ -309,6 +338,10 @@ and parse_apply pars =
     debug_parse_out "parse_apply";
     res
 
+(*
+mul_expr
+    = apply_expr {mul_op apply_expr}
+*)
 and parse_mul pars =
     debug_parse_in "parse_mul";
     let rec parse_rhs lhs =
@@ -327,6 +360,10 @@ and parse_mul pars =
     debug_parse_out "parse_mul";
     e
 
+(*
+add_expr
+    = mul_expr {add_op mul_expr}
+*)
 and parse_add pars =
     debug_parse_in "parse_add";
     let rec parse_rhs lhs =
@@ -345,6 +382,10 @@ and parse_add pars =
     debug_parse_out "parse_add";
     e
 
+(*
+cons_expr
+    = add_expr {':' add_expr}
+*)
 and parse_cons pars =
     debug_parse_in "parse_cons";
     let rec parse_rhs lhs =
@@ -363,6 +404,10 @@ and parse_cons pars =
     debug_parse_out "parse_cons";
     e
 
+(*
+equal_expr
+    = cons_expr [equal_op cons_expr]
+*)
 and parse_equal pars =
     debug_parse_in "parse_equal";
     let lhs = parse_cons pars in
@@ -380,6 +425,10 @@ and parse_equal pars =
     debug_parse_out "parse_equal";
     e
 
+(*
+logical_expr
+    = equal_expr {logical_op equal_expr}
+*)
 and parse_logical pars =
     debug_parse_in "parse_logical";
     let rec parse_rhs lhs =
@@ -398,6 +447,15 @@ and parse_logical pars =
     debug_parse_out "parse_logical";
     e
 
+(*
+let_expr
+    = LET [REC] id_pat [':' type] '=' expr
+id_pat
+    = param
+    | '()' | '(' id_pat {',' id_pat} ')'
+param
+    = ID | '_'
+*)
 and parse_let pars =
     debug_parse_in "parse_let";
     next_token pars;
@@ -422,6 +480,11 @@ and parse_let pars =
     debug_parse_out "parse_let";
     e
 
+(*
+fun_expr
+    = FUN ID [':' type] ('=' | '|') params '->' expr {'|' params '->' expr}
+    | FUN ID [':' type} a_params '=' expr
+*)
 and parse_fun pars =
     debug_parse_in "parse_fun";
     next_token pars;
@@ -435,6 +498,10 @@ and parse_fun pars =
     debug_parse_out "parse_fun";
     to_expr pars (LetRec (id, e))
 
+(*
+param_list
+    = ('_' | ID) {'_' | ID}
+*)
 and parse_param_list pars args =
     debug_parse_in "parse_param_list";
     let e =
@@ -451,6 +518,10 @@ and parse_param_list pars args =
     debug_parse_out "parse_param_list";
     e
 
+(*
+params
+    = '()' | pattern {pattern} [WHEN expr]
+*)
 and parse_params pars =
     debug_parse_in "parse_params pars";
     let e =
@@ -462,6 +533,10 @@ and parse_params pars =
     debug_parse_out "parse_params pars";
     e
 
+(*
+fn_expr
+    | FN params '->' expr {'|' params '->' expr}
+*)
 and parse_fn pars =
     debug_parse_in "parse_fn";
     next_token pars;
@@ -473,6 +548,10 @@ and parse_fn pars =
     debug_parse_out "parse_fn";
     e
 
+(*
+if_expr
+    | IF expr THEN expr [ELSE expr]
+*)
 and parse_if pars =
     debug_parse_in "parse_if";
     next_token pars;
@@ -492,10 +571,18 @@ and parse_if pars =
     debug_parse_out "parse_if";
     to_expr pars (If (e1, e2, e3))
 
+(*
+match_expr
+    = MATCH expr '{' match_list '}'
+*)
 and parse_match pars =
     next_token pars;
     to_expr pars Unit    (*TODO*)
 
+(*
+expr_list
+    = {expr}
+*)
 and parse_expr_list pars =
     debug_parse_in "parse_expr_list";
     let rec loop () =
@@ -514,6 +601,10 @@ and parse_expr_list pars =
     debug_parse_in "parse_expr_list";
     e
 
+(*
+compound_expr
+    = '{' expr_list '}'
+*)
 and parse_compound pars =
     debug_parse_in "parse_compound";
     next_token pars;
@@ -524,6 +615,16 @@ and parse_compound pars =
     debug_parse_out "parse_compound";
     to_expr pars (Comp e)
 
+(*
+expr
+    = let_expr
+    | fun_expr
+    | fn_expr
+    | if_expr
+    | match_expr
+    | compound_expr
+    | logical_expr
+*)
 and parse_expr pars =
     debug_parse_in "parse_expr";
     let e =
@@ -541,6 +642,10 @@ and parse_expr pars =
     debug_parse_out "parse_expr";
     e
 
+(*
+type_name
+    = { C_ID '.' } ID
+*)
 let parse_type_name pars cid_opt =
     debug_parse_in "parse_type_name";
     let rec loop name_lst cid_opt =
@@ -560,6 +665,13 @@ let parse_type_name pars cid_opt =
     debug_parse_out "parse_type_name";
     res
 
+(*
+constr_type
+    = TVAR [type_name]
+    | type_name [type_name]
+    | '(' type ')' [type_name]
+    | '(' type {',' type} ')' type_name
+*)
 let rec parse_constr_type pars cid_opt =
     debug_parse_in "parse_constr_type";
     let res =
@@ -603,6 +715,10 @@ let rec parse_constr_type pars cid_opt =
     debug_parse_out "parse_constr_type";
     res
 
+(*
+tuple_type
+    = constr_type {'*' constr_type}
+*)
 and parse_tuple_type pars cid_opt =
     debug_parse_in "parse_tuple_type";
     let t = parse_constr_type pars cid_opt in
@@ -619,6 +735,10 @@ and parse_tuple_type pars cid_opt =
     debug_parse_out "parse_tuple_type";
     res
 
+(*
+type
+    = tuple_type ['->' type]
+*)
 and parse_type pars cid_opt =
     debug_parse_in "parse_type";
     let t = parse_tuple_type pars cid_opt in
@@ -630,6 +750,10 @@ and parse_type pars cid_opt =
     debug_parse_out "parse_type";
     res
 
+(*
+variant_elem
+    = C_ID [type]
+*)
 let parse_variant_elem pars cid_opt =
     debug_parse_in "parse_variant_elem";
     let res =
@@ -656,6 +780,10 @@ let parse_variant_elem pars cid_opt =
     debug_parse_out "parse_variant_elem";
     res
 
+(*
+variant_decl
+    = ['|'] variant_elem {'|' variant_elem }
+*)
 let parse_variant_decl pars cid_opt =
     debug_parse_in "parse_variant_decl";
     let rec loop res =
@@ -675,6 +803,10 @@ let parse_variant_decl pars cid_opt =
     debug_parse_out "parse_variant_decl";
     res
 
+(*
+field_decl
+    = [MUTABLE] ID '::' type
+*)
 let parse_field_decl pars =
     debug_parse_in "parse_field_decl";
     let mut_flag =
@@ -690,6 +822,10 @@ let parse_field_decl pars =
     debug_parse_out "parse_field_decl";
     res
 
+(*
+record_decl
+    = '{' field_decl {';' field_decl} [';'] '}'
+*)
 let parse_record_decl pars =
     debug_parse_in "parse_record_decl";
     next_token pars;
@@ -709,6 +845,13 @@ let parse_record_decl pars =
     debug_parse_out "parse_record_decl";
     res
 
+(*
+type_params_opt
+    = [type_params]
+type_params
+    =  T_VAR
+    | '(' T_VAR {',' T_VAR ')'
+*)
 let parse_type_params_opt pars =
     debug_parse_in "parse_type_params_opt";
     let rec parse_type_param_list res =
@@ -736,6 +879,10 @@ let parse_type_params_opt pars =
     debug_parse_out "parse_type_params_opt";
     res
 
+(*
+type_def
+    = type_params_opt ID '=' (type | record_decl | variant_decl)
+*)
 let parse_type_def pars =
     debug_parse_in "parse_type_def";
     let tvl = parse_type_params_opt pars in
@@ -756,6 +903,10 @@ let parse_type_def pars =
     debug_parse_out "parse_type_def";
     e
 
+(*
+type_decl
+    = TYPE type_def {AND type_def}
+*)
 let parse_type_decl pars =
     debug_parse_in "parse_type_decl";
     next_token pars;
@@ -778,6 +929,10 @@ let parse_type_decl pars =
     debug_parse_out "parse_type_decl";
     res
 
+(*
+module
+    = MODULE C_ID
+*)
 let parse_module pars =
     debug_parse_in "parse_module";
     next_token pars;
@@ -785,6 +940,10 @@ let parse_module pars =
     debug_parse_out "parse_module";
     to_expr pars (Module id)
 
+(*
+import
+    = IMPORT C_ID [AS C_ID]
+*)
 let parse_import pars =
     debug_parse_in "parse_import";
     next_token pars;
@@ -799,6 +958,14 @@ let parse_import pars =
     debug_parse_out "parse_import";
     to_expr pars (Import (id, rename))
 
+(*
+decl
+    = module
+    | import
+    | DECL ID ':' type
+    | type_decl
+    | expr
+*)
 let rec parse_decl pars =
     debug_parse_in "parse_decl";
     let e =
@@ -813,6 +980,10 @@ let rec parse_decl pars =
     debug_parse_out "parse_decl";
     e
 
+(*
+program
+    = {decl}
+*)
 let parse scanner =
     let pars = new_parser scanner in
     parse_decl pars
