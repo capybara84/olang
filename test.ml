@@ -193,7 +193,8 @@ let parser_all_tests = [
     ("(1,2)", (1, Tuple [(1, IntLit 1); (1, IntLit 2)]));
     ("(1,2,3)", (1, Tuple [(1, IntLit 1); (1, IntLit 2); (1, IntLit 3)]));
 
-    ("type integer = int", (1, TypeDecl ("integer", [], TTypeDecl Type.t_int)));
+    ("type integer = int", (1, TypeDecl ("integer", [], TTypeDecl (TConstr (([], "int"), None)))));
+
     ("type c = char and s = string",
         (1, TypeDeclAnd ((1, TypeDecl ("c", [], TTypeDecl Type.t_char)),
             (1, TypeDecl ("s", [], TTypeDecl Type.t_string)))));

@@ -7,7 +7,26 @@
 * compiler
 
 
----
-type のパーサーを書いている最中に構文間違いを発見
-全体的にtypeの構文を見直そう
-（constrのネーミングが雑）
+ーー
+TConstr ("list", Some int)
+TConstr ("Some", Some int)
+が、
+int list
+int Some
+なのか
+list int
+Some int
+なのか
+区別つかないのがまずい
+ーー
+Parser.to_expr がいまいち
+パースし終わって最終的にexpからexprに変換する時に使っているので、
+行番号がだいたい次の行になってしまう。
+パース開始時に行番号をひろって、リターン時に使う、っていう風に
+全体的に書き直す必要がある。
+ーー
+Symbol Table に型環境テーブルを追加しよう。
+そして、"int" とかを登録して、サーチできるように。
+
+
+

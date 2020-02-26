@@ -272,7 +272,7 @@ and tuple_to_string_src = function
     | t::ts -> type_to_string_src t ^ "; " ^ tuple_to_string_src ts
 
 let rec type_decl_to_string_src = function
-    | TTypeDecl t -> "TTypeDecl " ^ type_to_string_src t
+    | TTypeDecl t -> "TTypeDecl (" ^ type_to_string_src t ^ ")"
     | TVariantDecl vl -> "TVariantDecl [" ^ variant_to_string_src vl ^ "]"
     | TRecordDecl fl -> "TRecordDecl [" ^ record_to_string_src fl ^ "]"
 and variant_to_string_src = function

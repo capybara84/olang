@@ -222,7 +222,7 @@ and load_source filename =
                 if !g_verbose then
                     print_endline @@ expr_to_string e;
                 if !g_output_source then
-                    print_endline @@ expr_to_string_src e
+                    print_endline @@ "(\"" ^ expr_to_string e ^ "\", " ^ expr_to_string_src e ^ ");"
                 else begin
                     let v = eval_top e in
                     if v <> VUnit then
