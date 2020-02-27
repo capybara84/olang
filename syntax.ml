@@ -24,7 +24,6 @@ type token_t = {
 type type_name = ident list * ident
 
 type typ =
-    | TUnit | TBool | TInt | TChar | TFloat | TString
     | TConstr of type_name * typ option
     | TTuple of typ list
     | TFun of typ * typ
@@ -109,8 +108,6 @@ let rec tname_to_string (idl, id) =
     | x::xs -> x ^ "." ^ tname_to_string (xs, id)
 
 let rec type_to_string = function
-    | TUnit -> "unit" | TBool -> "bool" | TInt -> "int" | TChar -> "char"
-    | TFloat -> "float" | TString -> "string"
     | TConstr (name, Some t) -> "(" ^ type_to_string t ^ " " ^ tname_to_string name ^ ")"
     | TConstr (name, None) -> tname_to_string name
     | TTuple tl -> "(" ^ tuple_to_string tl ^ ")"
@@ -257,8 +254,6 @@ let rec tname_to_string_src (idl, id) =
     "([" ^ id_list_to_string idl ^ "], \"" ^ id ^ "\")"
 
 let rec type_to_string_src = function
-    | TUnit -> "TUnit" | TBool -> "TBool" | TInt -> "TInt" | TChar -> "TChar"
-    | TFloat -> "TFloat" | TString -> "TString"
     | TConstr (name, Some t) ->
         "TConstr (" ^ tname_to_string_src name ^ ", Some (" ^ type_to_string_src t ^ "))"
     | TConstr (name, None) -> "TConstr (" ^ tname_to_string_src name ^ ", None)"

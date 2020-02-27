@@ -62,6 +62,21 @@ let builtin_list =
         ("snd", TFun (Type.new_tuple [snd_type; snd'_type], snd'_type), VBuiltin fn_second);
     ]
 
+let builtin_type_list =
+    [
+        ("unit", Type.t_unit);
+        ("bool", Type.t_bool);
+        ("int", Type.t_int);
+        ("char", Type.t_char);
+        ("float", Type.t_float);
+        ("string", Type.t_string);
+        ("ref", Type.t_ref);
+        ("list", Type.t_list);
+    ]
+
 let init () =
-    List.iter (fun (name, ty, value) -> Symbol.insert_default name ty value) builtin_list
+    List.iter (fun (name, ty, value) -> Symbol.insert_default name ty value) builtin_list;
+    List.iter (fun (name, ty) -> Symbol.insert_default_type name ty) builtin_type_list;
+    ()
+
 

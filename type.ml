@@ -13,6 +13,9 @@ let t_string = make_type "string"
     ref TConstr(([], "ref"), Some (TVar (0, ref None)))
 *)
 
+let t_ref = TConstr (([], "ref"), Some (TVar (0, ref None)))
+let t_list = TConstr (([], "list"), Some (TVar (0, ref None)))
+
 let new_list t =
     TConstr (([], "list"), Some t)
 
