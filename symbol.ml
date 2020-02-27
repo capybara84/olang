@@ -5,7 +5,7 @@ let default_module_name = "Main"
 let all_modules = ref Env.empty
 
 let insert_module id =
-    let tab = { env = Env.empty } in
+    let tab = { env = Env.empty; tenv = Env.empty } in
     all_modules := Env.extend id tab !all_modules;
     tab
 
@@ -29,18 +29,8 @@ let set_module id =
         current_module := insert_module id);
     !current_module
 
-
-let get_current_env () = !current_module.env
-let set_current_env env = !current_module.env <- env
-
 let set_default_module () =
     current_module := default_module
-
-let lookup_default id =
-    Env.lookup id default_module.env
-
-let insert_default name value =
-    default_module.env <- Env.extend name (ref value) default_module.env
 
 let rename_module old_name new_name =
     let tab = lookup_module old_name in
@@ -48,10 +38,29 @@ let rename_module old_name new_name =
     all_modules := Env.extend new_name tab module_list
 
 
-let show_env env =
+
+let get_current_env () = !current_module.env
+let set_current_env env = !current_module.env <- env
+let get_current_tenv () = !current_module.tenv
+let set_current_tenv tenv = !current_module.tenv <- tenv
+
+
+let lookup_default id =
+    Env.lookup id default_module.env
+
+let insert_default name ty value =
+    default_module.env <- Env.extend name (ref value) default_module.env;
+    default_module.tenv <- Env.extend name (ref ty) default_module.tenv
+
+let show_tab tab =
+    print_endline "env";
     List.iter (fun (name, value) ->
-        print_endline @@ " " ^ name ^ " = " ^ value_to_string !value) env
+        print_endline @@ " " ^ name ^ " = " ^ value_to_string !value) tab.env;
+    print_endline "tenv";
+    List.iter (fun (name, ty) ->
+        print_endline @@ " " ^ name ^ " = " ^ type_decl_to_string !ty) tab.tenv
 
 let show_all_modules () =
-    List.iter (fun (name, tab) -> print_endline @@ "Module " ^ name; show_env tab.env) !all_modules
+    List.iter (fun (name, tab) ->
+        print_endline @@ "Module " ^ name; show_tab tab) !all_modules
 

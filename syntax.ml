@@ -77,6 +77,7 @@ type value =
 
 type symtab = {
     mutable env : value ref Env.t;
+    mutable tenv : type_decl ref Env.t;
 }
 
 let tvar_to_string n =

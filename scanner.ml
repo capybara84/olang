@@ -60,7 +60,7 @@ let scan_number scan =
     let is_digit = function '0'..'9' -> true | _ -> false in
     INT_LIT (int_of_string (cut_token is_digit scan)) 
 
-let is_ident = function 'a'..'z' | 'A'..'Z' | '0'..'9' | '_' -> true | _ -> false
+let is_ident = function 'a'..'z' | 'A'..'Z' | '0'..'9' | '_' | '#' -> true | _ -> false
 
 let scan_c_ident scan =
     let id = cut_token is_ident scan in
@@ -177,7 +177,7 @@ let rec scan_token scan =
     | Some ' ' | Some '\t' | Some '\r' -> next_char scan; scan_token scan
     | Some '\n' -> skip_newline scan
     | Some '0'..'9' -> scan_number scan
-    | Some 'a'..'z' | Some '_' -> scan_ident scan
+    | Some 'a'..'z' | Some '_' | Some '#' -> scan_ident scan
     | Some 'A'..'Z' -> scan_c_ident scan
     | Some '\'' -> scan_char scan
     | Some '"' -> scan_string scan

@@ -41,26 +41,27 @@ let fn_second = function
     | VTuple (_::x::_) -> x
     | _ -> type_error "tuple"
 
-let fn_env _ =
-    print_endline "Env";
-    VUnit
-
 let builtin_list =
+    let hd_type = TVar (0, ref None) in
+    let tl_type = TVar (0, ref None) in
+    let fst_type = TVar (0, ref None) in
+    let fst'_type = TVar (1, ref None) in
+    let snd_type = TVar (0, ref None) in
+    let snd'_type = TVar (1, ref None) in
     [
-        ("true", VBool true);
-        ("false", VBool false);
-        ("nl", VBuiltin fn_nl);
-        ("putn", VBuiltin fn_putn);
-        ("putc", VBuiltin fn_putc);
-        ("putf", VBuiltin fn_putf);
-        ("puts", VBuiltin fn_puts);
-        ("hd", VBuiltin fn_head);
-        ("tl", VBuiltin fn_tail);
-        ("fst", VBuiltin fn_first);
-        ("snd", VBuiltin fn_second);
-        ("env", VBuiltin fn_env);
+        ("true", Type.t_bool, VBool true);
+        ("false", Type.t_bool, VBool false);
+        ("nl", TFun (Type.t_unit, Type.t_unit), VBuiltin fn_nl);
+        ("putn", TFun (Type.t_int, Type.t_unit), VBuiltin fn_putn);
+        ("putc", TFun (Type.t_char, Type.t_unit), VBuiltin fn_putc);
+        ("putf", TFun (Type.t_float, Type.t_unit), VBuiltin fn_putf);
+        ("puts", TFun (Type.t_string, Type.t_unit), VBuiltin fn_puts);
+        ("hd", TFun (Type.new_list hd_type, hd_type), VBuiltin fn_head);
+        ("tl", TFun (Type.new_list tl_type, Type.new_list tl_type), VBuiltin fn_tail);
+        ("fst", TFun (Type.new_tuple [fst_type; fst'_type], fst_type), VBuiltin fn_first);
+        ("snd", TFun (Type.new_tuple [snd_type; snd'_type], snd'_type), VBuiltin fn_second);
     ]
 
 let init () =
-    List.iter (fun (name, value) -> Symbol.insert_default name value) builtin_list
+    List.iter (fun (name, ty, value) -> Symbol.insert_default name (TTypeDecl ty) value) builtin_list
 
