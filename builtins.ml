@@ -63,5 +63,5 @@ let builtin_list =
     ]
 
 let init () =
-    List.iter (fun (name, ty, value) -> Symbol.insert_default name (TTypeDecl ty) value) builtin_list
+    List.iter (fun (name, ty, value) -> Symbol.insert_default name ty value) builtin_list
 

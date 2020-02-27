@@ -29,10 +29,8 @@ type typ =
     | TTuple of typ list
     | TFun of typ * typ
     | TVar of int * typ option ref
-and type_decl =
-    | TTypeDecl of typ
-    | TVariantDecl of (ident * typ option) list
-    | TRecordDecl of (ident * typ * mutflag) list
+    | TVariant of (ident * typ option) list
+    | TRecord of (ident * typ * mutflag) list
 and mutflag = Mutable | Immutable
 
 type binop = BinAdd | BinSub | BinMul | BinDiv | BinMod | BinLT | BinLE
@@ -61,7 +59,7 @@ type exp =
     | If of expr * expr * expr
     | Comp of expr list
     | Match of expr * (pattern * expr) list
-    | TypeDecl of ident * int list * type_decl
+    | TypeDecl of ident * int list * typ
     | TypeDeclAnd of expr list
     | Module of ident
     | Import of ident * ident option
@@ -77,7 +75,7 @@ type value =
 
 type symtab = {
     mutable env : value ref Env.t;
-    mutable tenv : type_decl ref Env.t;
+    mutable tenv : typ ref Env.t;
 }
 
 let tvar_to_string n =
@@ -119,15 +117,12 @@ let rec type_to_string = function
     | TFun (t1, t2) -> "(" ^ type_to_string t1 ^ " -> " ^ type_to_string t2 ^ ")"
     | TVar (n, {contents = None}) -> tvar_to_string n
     | TVar (_, {contents = Some t}) -> type_to_string t
+    | TVariant vl -> variant_to_string vl
+    | TRecord fl -> "{ " ^ record_to_string fl ^ "}"
 and tuple_to_string = function
     | [] -> ""
     | t::[] -> type_to_string t
     | t::ts -> type_to_string t ^ " * " ^ tuple_to_string ts
-
-let rec type_decl_to_string = function
-    | TTypeDecl t -> type_to_string t
-    | TVariantDecl vl -> variant_to_string vl
-    | TRecordDecl fl -> "{ " ^ record_to_string fl ^ "}"
 and variant_to_string = function
     | [] -> ""
     | (id, None)::xs ->
@@ -221,8 +216,8 @@ and type_decl_list_to_string = function
     | (_, (TypeDecl _ as x))::xs -> tdecl_to_string x ^ " and " ^ type_decl_list_to_string xs
     | _ -> failwith "type_decl_list_to_string bug"
 and tdecl_to_string = function
-    | TypeDecl (id, [], td) -> id ^ " = " ^ type_decl_to_string td
-    | TypeDecl (id, tvl, td) -> tvlist_to_string tvl ^ " " ^ id ^ " = " ^ type_decl_to_string td
+    | TypeDecl (id, [], td) -> id ^ " = " ^ type_to_string td
+    | TypeDecl (id, tvl, td) -> tvlist_to_string tvl ^ " " ^ id ^ " = " ^ type_to_string td
     | _ -> failwith "tdecl_to_string bug"
 
 let rec value_to_string = function
@@ -271,15 +266,12 @@ let rec type_to_string_src = function
     | TFun (t1, t2) -> "TFun (" ^ type_to_string_src t1 ^ ", " ^ type_to_string_src t2 ^ ")"
     | TVar (n, {contents = None}) -> "TVar (" ^ string_of_int n ^ ", ref None)"
     | TVar (_, {contents = Some t}) -> "TVar (0, ref (Some (" ^ type_to_string_src t ^ ")))"
+    | TVariant vl -> "TVariant [" ^ variant_to_string_src vl ^ "]"
+    | TRecord fl -> "TRecord [" ^ record_to_string_src fl ^ "]"
 and tuple_to_string_src = function
     | [] -> ""
     | t::[] -> type_to_string_src t
     | t::ts -> type_to_string_src t ^ "; " ^ tuple_to_string_src ts
-
-let rec type_decl_to_string_src = function
-    | TTypeDecl t -> "TTypeDecl (" ^ type_to_string_src t ^ ")"
-    | TVariantDecl vl -> "TVariantDecl [" ^ variant_to_string_src vl ^ "]"
-    | TRecordDecl fl -> "TRecordDecl [" ^ record_to_string_src fl ^ "]"
 and variant_to_string_src = function
     | [] -> ""
     | x::[] -> variant_elem_to_string x
@@ -343,7 +335,7 @@ let rec expr_to_string_src = function
         ^ match_list_to_string_src lst ^ "]))"
     | (n, TypeDecl (id, tvl, td)) ->
         "(" ^ string_of_int n ^ ", TypeDecl (\"" ^ id ^ "\", [" ^ tvar_list_to_string_src tvl ^ "], "
-            ^ type_decl_to_string_src td ^ "))"
+            ^ type_to_string_src td ^ "))"
     | (n, TypeDeclAnd el) ->
         "(" ^ string_of_int n ^ ", TypeDeclAnd [" ^ expr_list_to_string_src el ^ "])"
     | (n, Module name) -> "(" ^ string_of_int n ^ ", Module " ^ name ^ ")"

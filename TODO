@@ -16,6 +16,7 @@ Parser.to_expr がいまいち
 ーー
 Symbol Table に型環境テーブルを追加しよう。
 そして、"int" とかを登録して、サーチできるように。
-
+--
+type decl -> type
 
 

@@ -799,7 +799,7 @@ let parse_variant_decl pars cid_opt =
             next_token pars
     end;
     let (id, t) = parse_variant_elem pars cid_opt in
-    let res = TVariantDecl (loop ([(id, t)])) in
+    let res = TVariant (loop ([(id, t)])) in
     debug_parse_out "parse_variant_decl";
     res
 
@@ -841,7 +841,7 @@ let parse_record_decl pars =
         else
             List.rev fl
     in
-    let res = TRecordDecl (loop []) in
+    let res = TRecord (loop []) in
     debug_parse_out "parse_record_decl";
     res
 
@@ -894,10 +894,10 @@ let parse_type_def pars =
         | C_ID cid ->
             next_token pars;
             if peek_token pars = DOT then
-                (next_token pars; TTypeDecl (parse_type pars (Some cid)))
+                (next_token pars; parse_type pars (Some cid))
             else
                 parse_variant_decl pars (Some cid)
-        | _ -> TTypeDecl (parse_type pars None)
+        | _ -> parse_type pars None
     in
     let e = to_expr pars (TypeDecl (id, tvl, td)) in
     debug_parse_out "parse_type_def";

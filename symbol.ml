@@ -58,7 +58,7 @@ let show_tab tab =
         print_endline @@ " " ^ name ^ " = " ^ value_to_string !value) tab.env;
     print_endline "tenv";
     List.iter (fun (name, ty) ->
-        print_endline @@ " " ^ name ^ " = " ^ type_decl_to_string !ty) tab.tenv
+        print_endline @@ " " ^ name ^ " = " ^ type_to_string !ty) tab.tenv
 
 let show_all_modules () =
     List.iter (fun (name, tab) ->
