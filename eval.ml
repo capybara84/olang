@@ -2,6 +2,7 @@
 open Syntax
 
 let error n msg = raise (Error (string_of_int n ^ ": Runtime Error: " ^ msg))
+let warning n msg = print_endline @@ string_of_int n ^ ": Warning: " ^ msg
 
 let default_directory = "./"
 let default_extension = ".ol"
@@ -92,12 +93,15 @@ let rec eval env (n, e) =
     | FloatLit f -> VFloat f
     | StringLit s -> VString s
     | Ident id ->
-        (try
-            !(Env.lookup id env)
-        with Not_found ->
+        let v =
             (try
-                !(Symbol.lookup_default id)
-            with Not_found -> error n ("'" ^ id ^ "' not found")))
+                !(Env.lookup id env)
+            with Not_found ->
+                (try
+                    !(Symbol.lookup_default id)
+                with Not_found -> error n ("'" ^ id ^ "' not found")))
+        in
+        v
     | IdentMod (id, e) ->
         (try
             let tab = Symbol.lookup_module id in
@@ -154,7 +158,8 @@ and eval_list env el =
         if xs == [] then
             (new_env, v)
         else if v <> VUnit then
-            error (fst x) ("unit required")
+            (warning (fst x) "Type unit required";
+            eval_list new_env xs)
         else
             eval_list new_env xs
 

@@ -2,7 +2,7 @@
 open Syntax
 
 let error s = raise (Error ("Runtime error: " ^ s))
-let type_error s = error ("type '" ^ s ^ "' required")
+let type_error f s = error (f ^ ": type '" ^ s ^ "' required")
 
 let fn_nl _ =
     print_newline ();
@@ -11,35 +11,35 @@ let fn_nl _ =
 
 let fn_putn = function
     | VInt n -> print_int n; VUnit
-    | _ -> type_error "int"
+    | _ -> type_error "putn" "int"
 
 let fn_putc = function
     | VChar c -> print_char c; VUnit
-    | _ -> type_error "char"
+    | _ -> type_error "putc" "char"
 
 let fn_putf = function
     | VFloat f -> print_float f; VUnit
-    | _ -> type_error "float"
+    | _ -> type_error "putf" "float"
 
 let fn_puts = function
     | VString s -> print_string s; VUnit
-    | _ -> type_error "string"
+    | _ -> type_error "puts" "string"
 
 let fn_head = function
     | VCons (hd, _) -> hd
-    | _ -> type_error "list"
+    | _ -> type_error "hd" "list"
 
 let fn_tail = function
     | VCons (_, tl) -> tl
-    | _ -> type_error "list"
+    | _ -> type_error "tl" "list"
 
 let fn_first = function
     | VTuple (x::_) -> x
-    | _ -> type_error "tuple"
+    | _ -> type_error "fst" "tuple"
 
 let fn_second = function
     | VTuple (_::x::_) -> x
-    | _ -> type_error "tuple"
+    | _ -> type_error "snd" "tuple"
 
 let builtin_list =
     let hd_type = TVar (0, ref None) in
