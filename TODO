@@ -8,7 +8,7 @@
 
 
 ーー
-parse_decl を繰り返して１プログラムの構文木をつくるように
+skip_newline を適切にはさもう
 
 ーー
 Parser.to_expr がいまいち

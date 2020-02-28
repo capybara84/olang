@@ -848,6 +848,7 @@ let parse_record_decl pars =
             List.rev fl
     in
     let res = TRecord (loop []) in
+    expect pars RBRACE;
     debug_parse_out "parse_record_decl";
     res
 
@@ -995,7 +996,7 @@ let parse_decl_list pars =
     let rec loop () =
         match peek_token pars with
         | EOF -> []
-        | SEMI ->
+        | NEWLINE | SEMI ->
             next_token pars;
             loop ()
         | _ ->

@@ -241,7 +241,9 @@ let parser_all_tests = [
     ("type 'a option = None | Some 'a",
         (21, TypeDecl ("option", [0], TVariant [("None", None); ("Some", Some (TVar (0, ref None)))])));
     ("type 'a tree = Node 'a | Leaf ('a tree * 'a tree)",
-        (22, TypeDecl ("tree", [0], TVariant [("Node", Some (TVar (0, ref None))); ("Leaf", Some (TTuple [TConstr (([], "tree"), Some (TVar (0, ref None))); TConstr (([], "tree"), Some (TVar (0, ref None)))]))])));
+        (22, TypeDecl ("tree", [0], TVariant [("Node", Some (TVar (0, ref None)));
+            ("Leaf", Some (TTuple [TConstr (([], "tree"), Some (TVar (0, ref None)));
+            TConstr (([], "tree"), Some (TVar (0, ref None)))]))])));
     ("type itree = int tree",
         (23, TypeDecl ("itree", [], TConstr (([], "tree"), Some (TConstr (([], "int"), None))))));
     ("type lt = List.t",
@@ -342,12 +344,10 @@ let eval_all_tests = [
     ("module Main", VUnit);
     ("A.x", VInt 1);
     ("B.x", VInt 2);
-(*
     ("import List", VUnit);
     ("List.length [1,2,3]", VInt 3);
     ("import List as L", VUnit);
     ("L.length [1,2,3,4]", VInt 4);
-*)
 (*
     ("(fn n -> match n { 0 -> 'a' | 1 -> 'b' | 2 -> 'c' }) 1", VChar 'b');
     ("(fn n -> match n { (_,_,x) -> x }) (1,2,3)", VInt 3);
