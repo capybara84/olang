@@ -255,7 +255,7 @@ let parser_test verbose =
             if verbose then 
                 print_endline ("text    > " ^ text)
             else ();
-            let expr = Parser.parse @@ Scanner.from_string "TEST" text in
+            let expr = Parser.parse_one @@ Scanner.from_string "TEST" text in
             let parsed = expr_to_string expr in
             let expected = expr_to_string expected in
             if verbose then begin
@@ -373,7 +373,7 @@ let eval_test verbose =
             if verbose then
                 print_endline ("text> " ^ text)
             else ();
-            let expr = Parser.parse @@ Scanner.from_string "TEST" text in
+            let expr = Parser.parse_one @@ Scanner.from_string "TEST" text in
             let (new_env, v) = Eval.eval_decl (Symbol.get_current_env ()) expr in
             Symbol.set_current_env new_env;
             if verbose then begin

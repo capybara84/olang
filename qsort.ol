@@ -1,3 +1,5 @@
+import List
+
 fun qsort lst = {
     fun take n lst p = List.filter (fn item -> p item n) lst
     fun take_less n lst = take n lst (fn x y -> x < y)
@@ -27,9 +29,11 @@ fun show_lst lst = {
     }
 }
 
+/*
 let () = {
     let lst = [5,3,2,1,4,6]
     show_lst lst
     show_lst (qsort lst)
 }
+*/
 

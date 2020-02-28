@@ -6,7 +6,7 @@ let rec top_level () =
         flush stdout;
         let scan = Scanner.from_string "STDIN" @@ input_line stdin in
         let rec loop env =
-            let e = Parser.parse scan in
+            let e = Parser.parse_one scan in
             if snd e = Eof then
                 () 
             else begin

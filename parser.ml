@@ -447,7 +447,7 @@ and parse_logical pars =
     debug_parse_out "parse_logical";
     e
 
-(*
+(* TODO
 let_expr
     = LET [REC] id_pat [':' type] '=' expr
 id_pat
@@ -466,7 +466,13 @@ and parse_let pars =
         else
             false
     in
-    let id = expect_id pars in
+    let id = 
+        match peek_token pars with
+        | ID id -> next_token pars; id
+        | UNIT -> next_token pars; "()"
+        | WILDCARD -> next_token pars; "_"
+        | t -> error pars ("missing identifier at '" ^ token_to_string t ^ "'")
+    in
     expect pars EQ;
     skip_newline pars;
     let e = parse_expr pars in
@@ -981,10 +987,41 @@ let rec parse_decl pars =
     e
 
 (*
-program
+decl_list
     = {decl}
+*)
+let parse_decl_list pars =
+    debug_parse_in "parse_decl_list";
+    let rec loop () =
+        match peek_token pars with
+        | EOF -> []
+        | SEMI ->
+            next_token pars;
+            loop ()
+        | _ ->
+            let e = parse_decl pars in
+            skip_newline pars;
+            e::(loop ())
+    in
+    let e = to_expr pars (Comp (loop ())) in
+    debug_parse_out "parse_decl_list";
+    e
+
+
+(*
+program
+    = decl_list
 *)
 let parse scanner =
     let pars = new_parser scanner in
-    parse_decl pars
+    if peek_token pars = EOF then
+        to_expr pars Eof
+    else
+        parse_decl_list pars
     
+(*
+parse one liner
+*)
+let parse_one scanner =
+    let pars = new_parser scanner in
+    parse_decl pars

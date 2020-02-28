@@ -5,7 +5,7 @@ let default_module_name = "Main"
 let all_modules = ref Env.empty
 
 let insert_module id =
-    let tab = { env = Env.empty; tenv = Env.empty } in
+    let tab = { env = Env.empty; tenv = Env.empty; module_name = id } in
     all_modules := Env.extend id tab !all_modules;
     tab
 
@@ -20,6 +20,7 @@ let default_module = insert_module default_module_name
 let current_module = ref default_module
 
 let get_current_module () = !current_module
+let get_current_module_name () = !current_module.module_name
 let set_current_module tab = current_module := tab
 
 let set_module id =

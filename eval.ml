@@ -32,7 +32,7 @@ let rec eval_equal n = function
     | (VTuple xl, VTuple yl) -> equal_list n (xl, yl)
     | ((VCons _ as x), (VCons _ as y)) -> equal_cons n (x, y)
     | (VCons _, VNull) | (VNull, VCons _) -> false
-    | _ -> error n "type error (equal)"
+    | (x, y) -> error n ("type error (equal " ^ value_to_string x ^ " != " ^ value_to_string y ^ ")")
 and equal_list n = function
     | ([], []) -> true
     | (_, []) | ([], _) -> false
@@ -81,7 +81,7 @@ let eval_binary n = function
     | _ -> error n "type error (binary expression)"
 
 let rec eval env (n, e) =
-    if !g_verbose then print_endline @@ "eval: " ^ expr_to_string (n, e);
+    if !g_verbose then print_endline @@ "eval: " ^ expr_to_string_src (n, e);
     match e with
     | Eof | Unit -> VUnit
     | Null -> VNull
@@ -144,7 +144,7 @@ let rec eval env (n, e) =
     | Comp el ->
         let (_, v) = eval_list env el in
         v
-    | _ -> failwith "eval bug"
+    | _ -> failwith ("eval bug :" ^ expr_to_string (0,e) )
 
 and eval_list env el =
     match el with
@@ -159,8 +159,13 @@ and eval_list env el =
             eval_list new_env xs
 
 and eval_decl env x =
-    if !g_verbose then print_endline @@ "eval_decl: " ^ expr_to_string x;
+    if !g_verbose then print_endline @@ "eval_decl: " ^ expr_to_string_src x;
     match x with
+    | (_, Comp []) ->
+        (env, VUnit)
+    | (_, Comp el) ->
+        let (env, v) = eval_list env el in
+        (env, v)
     | (_, Ident "#env") ->
         Symbol.show_all_modules ();
         (env, VUnit)
@@ -233,7 +238,8 @@ and load_source filename =
     with Error s | Sys_error s -> print_endline s
 
 and eval_top e =
-    let (env, v) = eval_decl (Symbol.get_current_env ()) e in
+    let tab = Symbol.get_current_module () in
+    let (env, v) = eval_decl tab.env e in
     Symbol.set_current_env env;
     v
 
