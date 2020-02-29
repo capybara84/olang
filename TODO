@@ -1,4 +1,5 @@
 * type decl
+* type inference
 * variant
 * record
 * mutable

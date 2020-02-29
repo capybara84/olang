@@ -5,7 +5,7 @@ let error p msg = raise (Error (get_position_string p ^ ": Runtime Error: " ^ ms
 let warning p msg = print_endline @@ get_position_string p ^ ": Warning: " ^ msg
 
 let default_directory = "./"
-let default_extension = ".w"
+let default_extension = ".wt"
 
 let make_module_filename name =
     default_directory ^ String.uncapitalize name ^ default_extension
@@ -82,73 +82,78 @@ let eval_binary n = function
     | _ -> error n "type error (binary expression)"
 
 let rec eval env (n, e) =
-    if !g_verbose then print_endline @@ "eval: " ^ expr_to_string_src (n, e);
-    match e with
-    | Eof | Unit -> VUnit
-    | Null -> VNull
-    | WildCard -> VUnit (*TODO*)
-    | BoolLit b -> VBool b
-    | IntLit i -> VInt i
-    | CharLit c -> VChar c
-    | FloatLit f -> VFloat f
-    | StringLit s -> VString s
-    | Ident id ->
-        let v =
-            (try
-                !(Env.lookup id env)
-            with Not_found ->
+    if !g_verbose then print_endline @@ "eval: " ^ expr_to_string (n, e);
+    let res =
+        match e with
+        | Eof | Unit -> VUnit
+        | Null -> VNull
+        | WildCard -> VUnit (*TODO*)
+        | BoolLit b -> VBool b
+        | IntLit i -> VInt i
+        | CharLit c -> VChar c
+        | FloatLit f -> VFloat f
+        | StringLit s -> VString s
+        | Ident id ->
+            let v =
                 (try
-                    !(Symbol.lookup_default id)
-                with Not_found -> error n ("'" ^ id ^ "' not found")))
-        in
-        v
-    | IdentMod (id, e) ->
-        (try
-            let tab = Symbol.lookup_module id in
-            eval tab.env e
-        with Not_found -> error n ("'" ^ id ^ "' not found"))
-    | Record (e, id) ->
-        VUnit (*TODO*)
-    | Tuple el ->
-        VTuple (List.map (eval env) el)
-    | Binary (BinLor, lhs, rhs) ->
-        if eval env lhs = VBool true then
-            VBool true
-        else
-            eval env rhs
-    | Binary (BinLand, lhs, rhs) ->
-        if eval env lhs = VBool false then
-            VBool false
-        else
-            eval env rhs
-    | Binary (op, lhs, rhs) ->
-        eval_binary n (op, eval env lhs, eval env rhs)
-    | Unary (op, e) ->
-        eval_unary n (op, eval env e)
-    | Fn (arg, body) ->
-        VClosure (arg, body, env)
-    | Apply (fn, arg) ->
-        let closure = eval env fn in
-        let arg_value = eval env arg in
-        (match closure with
-            | VClosure ((_, Ident carg), body, c_env) ->
-                let new_env = Env.extend carg (ref arg_value) c_env in
-                eval new_env body
-            | VClosure ((_, WildCard), body, c_env)
-            | VClosure ((_, Unit), body, c_env) ->
-                eval c_env body
-            | VBuiltin fn ->
-                fn arg_value
-            | v -> error n ("application of non-function: " ^ value_to_string v))
-    | If (cond_e, then_e, else_e) ->
-        (match eval env cond_e with
-            | VBool true -> eval env then_e
-            | VBool false -> eval env else_e
-            | _ -> error n "bool expected")
-    | Comp el ->
-        let (_, v) = eval_list false env el in
-        v
-    | _ -> failwith ("eval bug :" ^ expr_to_string (n, e) )
+                    !(Env.lookup id env)
+                with Not_found ->
+                    (try
+                        !(Symbol.lookup_default id)
+                    with Not_found -> error n ("'" ^ id ^ "' not found")))
+            in
+            v
+        | IdentMod (id, e) ->
+            (try
+                let tab = Symbol.lookup_module id in
+                eval tab.env e
+            with Not_found -> error n ("'" ^ id ^ "' not found"))
+        | Record (e, id) ->
+            VUnit (*TODO*)
+        | Tuple el ->
+            VTuple (List.map (eval env) el)
+        | Binary (BinLor, lhs, rhs) ->
+            if eval env lhs = VBool true then
+                VBool true
+            else
+                eval env rhs
+        | Binary (BinLand, lhs, rhs) ->
+            if eval env lhs = VBool false then
+                VBool false
+            else
+                eval env rhs
+        | Binary (op, lhs, rhs) ->
+            eval_binary n (op, eval env lhs, eval env rhs)
+        | Unary (op, e) ->
+            eval_unary n (op, eval env e)
+        | Fn (arg, body) ->
+            VClosure (arg, body, env)
+        | Apply (fn, arg) ->
+            let closure = eval env fn in
+            let arg_value = eval env arg in
+            (match closure with
+                | VClosure ((_, Ident carg), body, c_env) ->
+                    let new_env = Env.extend carg (ref arg_value) c_env in
+                    eval new_env body
+                | VClosure ((_, WildCard), body, c_env)
+                | VClosure ((_, Unit), body, c_env) ->
+                    eval c_env body
+                | VBuiltin fn ->
+                    fn arg_value
+                | v -> error n ("application of non-function: " ^ value_to_string v))
+        | If (cond_e, then_e, else_e) ->
+            (match eval env cond_e with
+                | VBool true -> eval env then_e
+                | VBool false -> eval env else_e
+                | _ -> error n "bool expected")
+        | Comp el ->
+            let (_, v) = eval_list false env el in
+            v
+        | _ -> failwith ("eval bug :" ^ expr_to_string (n, e) )
+    in
+    if !g_verbose then print_endline @@ "eval: " ^ expr_to_string (n, e) ^ " = " ^ value_to_string res;
+    res
+
 
 and eval_list is_toplevel env el =
     match el with
