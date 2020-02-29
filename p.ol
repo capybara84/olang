@@ -30,7 +30,7 @@ f 3
 (f 3
 )
 
-f
+fn
 ()
 ->
 1
@@ -59,10 +59,12 @@ else
 n *
 fact (n -
 1)
+
 {
 1;
 2;
 }
+
 {
 }
 {1;2;
@@ -97,9 +99,9 @@ A
 1
 )
 
-(1
-,
-2)
+(1 ,
+2
+)
 
 type
 integer
@@ -145,6 +147,7 @@ x
 ::
 'a
 ;
+mutable
 y
 ::
 'a
@@ -153,17 +156,15 @@ y
 type
 color
 =
-Red
-| Green |
+Red |
+Green |
 Blue
 
 type
 'a
 option
 =
-None
-|
-Some
-'a
+None |
+Some 'a
 
 

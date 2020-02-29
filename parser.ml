@@ -260,6 +260,7 @@ and parse_simple pars =
         | LPAR ->
             next_token pars;
             skip_newline pars;
+            skip_newline pars;
             let e = parse_expr pars in
             let rec loop lst =
                 let e = parse_expr pars in
@@ -306,6 +307,7 @@ and parse_unary pars =
     let res =
         if is_unop op then begin
             next_token pars;
+            skip_newline pars;
             let e = parse_simple pars in
             to_expr pars (Unary (token_to_unop op, e))
         end else
@@ -351,6 +353,7 @@ and parse_mul pars =
         else begin
             let op = token_to_binop tt in
             next_token pars;
+            skip_newline pars;
             let rhs = parse_apply pars in
             parse_rhs (to_expr pars (Binary (op, lhs, rhs)))
         end
@@ -373,6 +376,7 @@ and parse_add pars =
         else begin
             let op = token_to_binop tt in
             next_token pars;
+            skip_newline pars;
             let rhs = parse_mul pars in
             parse_rhs (to_expr pars (Binary (op, lhs, rhs)))
         end
@@ -395,6 +399,7 @@ and parse_cons pars =
         else begin
             let op = token_to_binop tt in
             next_token pars;
+            skip_newline pars;
             let rhs = parse_add pars in
             to_expr pars (Binary (op, lhs, parse_rhs rhs))
         end
@@ -418,6 +423,7 @@ and parse_equal pars =
         else begin
             let op = token_to_binop tt in
             next_token pars;
+            skip_newline pars;
             let rhs = parse_cons pars in
             to_expr pars (Binary (op, lhs, rhs))
         end
@@ -438,6 +444,7 @@ and parse_logical pars =
         else begin
             let op = token_to_binop tt in
             next_token pars;
+            skip_newline pars;
             let rhs = parse_equal pars in
             parse_rhs (to_expr pars (Binary (op, lhs, rhs)))
         end
@@ -461,9 +468,11 @@ and parse_let pars =
     next_token pars;
     skip_newline pars;
     let is_rec =
-        if peek_token pars = REC then
-            (next_token pars; true)
-        else
+        if peek_token pars = REC then begin
+            next_token pars;
+            skip_newline pars;
+            true
+        end else
             false
     in
     let id = 
@@ -496,6 +505,7 @@ and parse_fun pars =
     next_token pars;
     skip_newline pars;
     let id = expect_id pars in
+    skip_newline pars;
     let args = parse_params pars in
     expect pars EQ;
     skip_newline pars;
@@ -594,7 +604,7 @@ and parse_expr_list pars =
     let rec loop () =
         match peek_token pars with
         | EOF | RBRACE -> []
-        | SEMI ->
+        | NEWLINE | SEMI ->
             next_token pars;
             if peek_token pars = RBRACE then []
             else loop ()
@@ -693,6 +703,7 @@ let rec parse_constr_type pars cid_opt =
                     TConstr (parse_type_name pars None, None)
                 | LPAR ->
                     next_token pars;
+                    skip_newline pars;
                     let t = parse_type pars None in
                     if peek_token pars <> COMMA then begin
                         expect pars RPAR;
@@ -729,9 +740,11 @@ and parse_tuple_type pars cid_opt =
     debug_parse_in "parse_tuple_type";
     let t = parse_constr_type pars cid_opt in
     let rec loop res =
-        if peek_token pars = STAR then
-            (next_token pars; loop ((parse_constr_type pars None) :: res))
-        else List.rev res
+        if peek_token pars = STAR then begin
+            next_token pars;
+            skip_newline pars;
+            loop ((parse_constr_type pars None) :: res)
+        end else List.rev res
     in
     let res =
         if peek_token pars = STAR then
@@ -749,9 +762,11 @@ and parse_type pars cid_opt =
     debug_parse_in "parse_type";
     let t = parse_tuple_type pars cid_opt in
     let res =
-        if peek_token pars = RARROW then
-            (next_token pars; TFun (t, parse_type pars None))
-        else t
+        if peek_token pars = RARROW then begin
+            next_token pars;
+            skip_newline pars;
+            TFun (t, parse_type pars None)
+        end else t
     in
     debug_parse_out "parse_type";
     res
@@ -795,14 +810,18 @@ let parse_variant_decl pars cid_opt =
     let rec loop res =
         if peek_token pars = OR then begin
             next_token pars;
+            skip_newline pars;
             let (id, t) = parse_variant_elem pars None in
+            skip_newline pars;
             loop ((id, t)::res)
         end else
             List.rev res
     in
     if cid_opt = None then begin
-        if peek_token pars = OR then
-            next_token pars
+        if peek_token pars = OR then begin
+            next_token pars;
+            skip_newline pars
+        end
     end;
     let (id, t) = parse_variant_elem pars cid_opt in
     let res = TVariant (loop ([(id, t)])) in
@@ -816,13 +835,17 @@ field_decl
 let parse_field_decl pars =
     debug_parse_in "parse_field_decl";
     let mut_flag =
-        if peek_token pars = MUTABLE then
-            (next_token pars; Mutable)
-        else
+        if peek_token pars = MUTABLE then begin
+            next_token pars;
+            skip_newline pars;
+            Mutable
+        end else
             Immutable
     in
     let id = expect_id pars in
+    skip_newline pars;
     expect pars DCOLON;
+    skip_newline pars;
     let t = parse_type pars None in
     let res = (id, t, mut_flag) in
     debug_parse_out "parse_field_decl";
@@ -835,13 +858,16 @@ record_decl
 let parse_record_decl pars =
     debug_parse_in "parse_record_decl";
     next_token pars;
+    skip_newline pars;
     let rec loop fl =
         if is_field_decl pars then
             let f = parse_field_decl pars in
+            skip_newline pars;
             if peek_token pars <> SEMI then
                 List.rev (f::fl)
             else begin
                 next_token pars;
+                skip_newline pars;
                 loop (f::fl)
             end
         else
@@ -893,8 +919,11 @@ type_def
 let parse_type_def pars =
     debug_parse_in "parse_type_def";
     let tvl = parse_type_params_opt pars in
+    skip_newline pars;
     let id = expect_id pars in
+    skip_newline pars;
     expect pars EQ;
+    skip_newline pars;
     let td = match peek_token pars with
         | LBRACE -> parse_record_decl pars
         | OR -> parse_variant_decl pars None
@@ -917,15 +946,19 @@ type_decl
 let parse_type_decl pars =
     debug_parse_in "parse_type_decl";
     next_token pars;
+    skip_newline pars;
     let rec loop lst =
         next_token pars;
+        skip_newline pars;
         let e = parse_type_def pars in
+        skip_newline pars;
         if peek_token pars <> AND then
             List.rev (e::lst)
         else loop (e::lst)
     in
     let res =
         let e = parse_type_def pars in
+        skip_newline pars;
         if peek_token pars <> AND then
             e
         else begin
@@ -943,6 +976,7 @@ module
 let parse_module pars =
     debug_parse_in "parse_module";
     next_token pars;
+    skip_newline pars;
     let id = expect_c_id pars in
     debug_parse_out "parse_module";
     to_expr pars (Module id)
@@ -954,10 +988,13 @@ import
 let parse_import pars =
     debug_parse_in "parse_import";
     next_token pars;
+    skip_newline pars;
     let id = expect_c_id pars in
+    skip_newline pars;
     let rename =
         if peek_token pars = AS then begin
             next_token pars;
+            skip_newline pars;
             Some (expect_c_id pars)
         end else
             None
