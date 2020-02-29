@@ -248,63 +248,6 @@ let parser_all_tests = [
                 TConstr (([], "tree"), Some (TVar (0, ref None)))]))])));
     ("type itree = (int tree)", (dummy, TypeDecl ("itree", [], TConstr (([], "tree"), Some (TConstr (([], "int"), None))))));
     ("type lt = List.t", (dummy, TypeDecl ("lt", [], TConstr ((["List"], "t"), None))));
-(*
-    ("type integer = int", (2, TypeDecl ("integer", [], TConstr (([], "int"), None))));
-    ("type c = char and s = string",
-        (3, TypeDeclAnd [(2, TypeDecl ("c", [], TConstr (([], "char"), None)));
-            (3, TypeDecl ("s", [], TConstr (([], "string"), None)))]));
-    ("type x = char and y = string and z = int",
-        (4, TypeDeclAnd [(3, TypeDecl ("x", [], TConstr (([], "char"), None)));
-            (3, TypeDecl ("y", [], TConstr (([], "string"), None)));
-            (4, TypeDecl ("z", [], TConstr (([], "int"), None)))]));
-    ("type f = unit -> int",
-        (5, TypeDecl ("f", [], TFun (TConstr (([], "unit"), None), TConstr (([], "int"), None)))));
-    ("type f = int -> int -> int",
-        (6, TypeDecl ("f", [], TFun (TConstr (([], "int"), None),
-            TFun (TConstr (([], "int"), None), TConstr (([], "int"), None))))));
-    ("type 'a f = 'a -> 'a -> 'a",
-        (7, TypeDecl ("f", [0], TFun (TVar (0, ref None), TFun (TVar (0, ref None), TVar (0, ref None))))));
-    ("type 'a x = 'a",
-        (8, TypeDecl ("x", [0], TVar (0, ref None))));
-    ("type t = int * char",
-        (9, TypeDecl ("t", [], TTuple [TConstr (([], "int"), None); TConstr (([], "char"), None)])));
-    ("type f = float", (10, TypeDecl ("f", [], TConstr (([], "float"), None))));
-    ("type l = int list",
-        (11, TypeDecl ("l", [], TConstr (([], "list"), Some (TConstr (([], "int"), None))))));
-    ("type 'a r = 'a ref", (12, TypeDecl ("r", [0], TConstr (([], "ref"), Some (TVar (0, ref None))))));
-    ("type 'a pair = ('a * 'a)",
-        (13, TypeDecl ("pair", [0], TTuple [TVar (0, ref None); TVar (0, ref None)])));
-    ("type  ('a, 'b) pair = ('a * 'b)",
-        (14, TypeDecl ("pair", [0; 1], TTuple [TVar (0, ref None); TVar (1, ref None)])));
-    ("type point2d = { mutable x :: int; mutable y :: int; }",
-        (14, TypeDecl ("point2d", [], TRecord [("x", TConstr (([], "int"), None), Mutable);
-            ("y", TConstr (([], "int"), None), Mutable)])));
-    ("type 'a point2d = { x :: 'a; y :: 'a; }",
-        (15, TypeDecl ("point2d", [0], TRecord [("x", TVar (0, ref None), Immutable);
-            ("y", TVar (0, ref None), Immutable)])));
-    ("type ('a, 'b, 'c) atob = { a :: 'a; b :: 'b; c :: 'c; }",
-        (16, TypeDecl ("atob", [0; 1; 2],
-            TRecord [("a", TVar (0, ref None), Immutable);
-                ("b", TVar (1, ref None), Immutable); ("c", TVar (2, ref None), Immutable)])));
-    ("type color = | Red | Green | Blue",
-        (18, TypeDecl ("color", [], TVariant [("Red", None); ("Green", None); ("Blue", None)])));
-    ("type color = Red | Green | Blue",
-        (19, TypeDecl ("color", [], TVariant [("Red", None); ("Green", None); ("Blue", None)])));
-    ("type color = Red | Green | Blue | RGB (int * int * int)",
-        (20, TypeDecl ("color", [], TVariant [("Red", None); ("Green", None); ("Blue", None);
-            ("RGB", Some (TTuple [TConstr (([], "int"), None);
-            TConstr (([], "int"), None); TConstr (([], "int"), None)]))])));
-    ("type 'a option = None | Some 'a",
-        (21, TypeDecl ("option", [0], TVariant [("None", None); ("Some", Some (TVar (0, ref None)))])));
-    ("type 'a tree = Node 'a | Leaf ('a tree * 'a tree)",
-        (22, TypeDecl ("tree", [0], TVariant [("Node", Some (TVar (0, ref None)));
-            ("Leaf", Some (TTuple [TConstr (([], "tree"), Some (TVar (0, ref None)));
-            TConstr (([], "tree"), Some (TVar (0, ref None)))]))])));
-    ("type itree = int tree",
-        (23, TypeDecl ("itree", [], TConstr (([], "tree"), Some (TConstr (([], "int"), None))))));
-    ("type lt = List.t",
-        (25, TypeDecl ("lt", [], TConstr ((["List"], "t"), None))));
-*)
 ]
 
 let parser_test verbose =
