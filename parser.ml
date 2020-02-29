@@ -6,16 +6,11 @@ type t = {
     mutable token : token_t;
 }
 
-let get_source_position pars =
-    get_position_string @@ Scanner.get_pos pars.scanner
-
-let get_line pars =
-    let pos = Scanner.get_pos pars.scanner in
-    pos.line
-
 let get_pos pars = Scanner.get_pos pars.scanner
 
-let to_expr pars e = (get_pos pars, e)
+let get_pos_str pars =
+    get_position_string @@ get_pos pars
+
 
 let debug_scope_flag = ref false
 let debug_token_flag = ref false
@@ -52,7 +47,7 @@ let debug_token msg =
 
 
 let error pars msg =
-    raise (Error (get_source_position pars ^ ": " ^ msg))
+    raise (Error (get_pos_str pars ^ ": " ^ msg))
 
 let new_parser scan = { scanner = scan; token = Scanner.get_token scan }
 
@@ -109,7 +104,7 @@ let peek_token pars = pars.token.token
 
 let next_token pars =
     pars.token <- Scanner.get_token pars.scanner;
-    debug_token @@ get_source_position pars ^ ": token = " ^ token_to_string @@ peek_token pars
+    debug_token @@ get_pos_str pars ^ ": token = " ^ token_to_string @@ peek_token pars
 
 let is_type_name pars =
     match peek_token pars with
@@ -166,6 +161,7 @@ list_expr
 *)
 let rec parse_list_expr pars =
     debug_parse_in "parse_list_expr";
+    let pos = get_pos pars in
     let lhs = parse_expr pars in
     let rhs = 
         if peek_token pars = COMMA then begin
@@ -173,10 +169,10 @@ let rec parse_list_expr pars =
             skip_newline pars;
             parse_list_expr pars
         end else
-            to_expr pars Null
+            (get_pos pars, Null)
     in
     debug_parse_out "parse_list_expr";
-    to_expr pars (Binary (BinCons, lhs, rhs))
+    (pos, Binary (BinCons, lhs, rhs))
 
 (*
 c_id_expr
@@ -189,15 +185,16 @@ and parse_c_id_expr pars =
     let cid = expect_c_id pars in
     let e =
         if peek_token pars = DOT then begin
+            let pos = get_pos pars in
             next_token pars;
             skip_newline pars;
             match peek_token pars with
             | ID _ ->
-                to_expr pars (IdentMod (cid, parse_id_expr pars))
+                (pos, IdentMod (cid, parse_id_expr pars))
             | C_ID _ ->
-                to_expr pars (IdentMod (cid, parse_c_id_expr pars))
+                (pos, IdentMod (cid, parse_c_id_expr pars))
             | _ -> error pars "missing identifier"
-        end else to_expr pars Unit
+        end else (get_pos pars, Unit)
     in
     (* assign / construct / record *)
     debug_parse_out "parse_c_id_expr";
@@ -209,12 +206,14 @@ id_expr
 *)
 and parse_id_expr pars =
     debug_parse_in "parse_id_expr";
-    let lhs = to_expr pars (Ident (expect_id pars)) in
+    let pos = get_pos pars in
+    let lhs = (pos, Ident (expect_id pars)) in
     let rec parse_rhs lhs =
         if peek_token pars = DOT then begin
+            let pos = get_pos pars in
             next_token pars;
             let id = expect_id pars in
-            parse_rhs (to_expr pars (Record (lhs, id)))
+            parse_rhs (pos, Record (lhs, id))
         end else lhs
     in
     let e = parse_rhs lhs in
@@ -231,38 +230,38 @@ simple_expr
 *)
 and parse_simple pars =
     debug_parse_in "parse_simple";
+    let pos = get_pos pars in
     let res =
         match peek_token pars with
         | EOF ->
-            to_expr pars Eof
+            (pos, Eof)
         | UNIT ->
             next_token pars;
-            to_expr pars Unit
+            (pos, Unit)
         | NULL ->
             next_token pars;
-            to_expr pars Null
+            (pos, Null)
         | C_ID _ ->
             parse_c_id_expr pars
         | ID _ ->
             parse_id_expr pars
         | BOOL_LIT b ->
             next_token pars;
-            to_expr pars (BoolLit b)
+            (pos, BoolLit b)
         | INT_LIT i ->
             next_token pars;
-            to_expr pars (IntLit i)
+            (pos, IntLit i)
         | CHAR_LIT c ->
             next_token pars;
-            to_expr pars (CharLit c)
+            (pos, CharLit c)
         | FLOAT_LIT f ->
             next_token pars;
-            to_expr pars (FloatLit f)
+            (pos, FloatLit f)
         | STRING_LIT s ->
             next_token pars;
-            to_expr pars (StringLit s)
+            (pos, StringLit s)
         | LPAR ->
             next_token pars;
-            skip_newline pars;
             skip_newline pars;
             let e = parse_expr pars in
             let rec loop lst =
@@ -275,22 +274,24 @@ and parse_simple pars =
                     List.rev (e::lst)
             in
             if peek_token pars = COMMA then begin
+                let pos = get_pos pars in
                 next_token pars;
                 skip_newline pars;
                 let e2 = loop [] in
                 expect pars RPAR;
-                to_expr pars (Tuple (e::e2))
+                (pos, Tuple (e::e2))
             end else begin
                 expect pars RPAR;
                 e
             end
         | LSBRA ->
+            let pos = get_pos pars in
             next_token pars;
             skip_newline pars;
             let e = parse_list_expr pars in
             expect pars RSBRA;
             if expr_list_length (snd e) = 0 then
-                to_expr pars Null
+                (pos, Null)
             else
                 e
         | t ->
@@ -306,13 +307,14 @@ unary_expr
 *)
 and parse_unary pars =
     debug_parse_in "parse_unary";
+    let pos = get_pos pars in
     let op = peek_token pars in
     let res =
         if is_unop op then begin
             next_token pars;
             skip_newline pars;
             let e = parse_simple pars in
-            to_expr pars (Unary (token_to_unop op, e))
+            (pos, Unary (token_to_unop op, e))
         end else
             parse_simple pars
     in
@@ -326,8 +328,9 @@ apply_expr
 and parse_apply pars =
     debug_parse_in "parse_apply";
     let rec parse_apply_rhs lhs =
+        let pos = get_pos pars in
         let a = parse_simple pars in
-        let e = to_expr pars (Apply (lhs, a)) in
+        let e = (pos, Apply (lhs, a)) in
         if is_apply e (peek_token pars) then
             parse_apply_rhs e
         else
@@ -350,6 +353,7 @@ mul_expr
 and parse_mul pars =
     debug_parse_in "parse_mul";
     let rec parse_rhs lhs =
+        let pos = get_pos pars in
         let tt = peek_token pars in
         if not (is_mul_op tt) then
             lhs
@@ -358,7 +362,7 @@ and parse_mul pars =
             next_token pars;
             skip_newline pars;
             let rhs = parse_apply pars in
-            parse_rhs (to_expr pars (Binary (op, lhs, rhs)))
+            parse_rhs (pos, Binary (op, lhs, rhs))
         end
     in
     let e = parse_apply pars in
@@ -373,6 +377,7 @@ add_expr
 and parse_add pars =
     debug_parse_in "parse_add";
     let rec parse_rhs lhs =
+        let pos = get_pos pars in
         let tt = peek_token pars in
         if not (is_add_op tt) then
             lhs
@@ -381,7 +386,7 @@ and parse_add pars =
             next_token pars;
             skip_newline pars;
             let rhs = parse_mul pars in
-            parse_rhs (to_expr pars (Binary (op, lhs, rhs)))
+            parse_rhs (pos, Binary (op, lhs, rhs))
         end
     in
     let e = parse_mul pars in
@@ -396,6 +401,7 @@ cons_expr
 and parse_cons pars =
     debug_parse_in "parse_cons";
     let rec parse_rhs lhs =
+        let pos = get_pos pars in
         let tt = peek_token pars in
         if tt <> COLON then
             lhs
@@ -404,7 +410,7 @@ and parse_cons pars =
             next_token pars;
             skip_newline pars;
             let rhs = parse_add pars in
-            to_expr pars (Binary (op, lhs, parse_rhs rhs))
+            (pos, Binary (op, lhs, parse_rhs rhs))
         end
     in
     let e = parse_add pars in
@@ -419,6 +425,7 @@ equal_expr
 and parse_equal pars =
     debug_parse_in "parse_equal";
     let lhs = parse_cons pars in
+    let pos = get_pos pars in
     let tt = peek_token pars in
     let e =
         if not (is_equal_op tt) then
@@ -428,7 +435,7 @@ and parse_equal pars =
             next_token pars;
             skip_newline pars;
             let rhs = parse_cons pars in
-            to_expr pars (Binary (op, lhs, rhs))
+            (pos, Binary (op, lhs, rhs))
         end
     in
     debug_parse_out "parse_equal";
@@ -441,6 +448,7 @@ logical_expr
 and parse_logical pars =
     debug_parse_in "parse_logical";
     let rec parse_rhs lhs =
+        let pos = get_pos pars in
         let tt = peek_token pars in
         if not (is_logical_op tt) then
             lhs
@@ -449,7 +457,7 @@ and parse_logical pars =
             next_token pars;
             skip_newline pars;
             let rhs = parse_equal pars in
-            parse_rhs (to_expr pars (Binary (op, lhs, rhs)))
+            parse_rhs (pos, Binary (op, lhs, rhs))
         end
     in
     let e = parse_equal pars in
@@ -468,6 +476,7 @@ param
 *)
 and parse_let pars =
     debug_parse_in "parse_let";
+    let pos = get_pos pars in
     next_token pars;
     skip_newline pars;
     let is_rec =
@@ -491,9 +500,9 @@ and parse_let pars =
     skip_newline pars;
     let e =
         if is_rec then
-            to_expr pars (LetRec (id, e))
+            (pos, LetRec (id, e))
         else
-            to_expr pars (Let (id, e))
+            (pos, Let (id, e))
     in
     debug_parse_out "parse_let";
     e
@@ -505,6 +514,7 @@ fun_expr
 *)
 and parse_fun pars =
     debug_parse_in "parse_fun";
+    let pos = get_pos pars in
     next_token pars;
     skip_newline pars;
     let id = expect_id pars in
@@ -512,10 +522,11 @@ and parse_fun pars =
     let args = parse_params pars in
     expect pars EQ;
     skip_newline pars;
-    let e = List.fold_right (fun arg body -> to_expr pars (Fn (arg, body))) args (parse_expr pars)
+    let e = List.fold_right (fun arg body -> (pos, Fn (arg, body))) args (parse_expr pars)
     in
+    let e = (pos, LetRec (id, e)) in
     debug_parse_out "parse_fun";
-    to_expr pars (LetRec (id, e))
+    e
 
 (*
 param_list
@@ -523,14 +534,15 @@ param_list
 *)
 and parse_param_list pars args =
     debug_parse_in "parse_param_list";
+    let pos = get_pos pars in
     let e =
         match peek_token pars with
         | WILDCARD ->
             next_token pars;
-            parse_param_list pars (to_expr pars WildCard :: args)
+            parse_param_list pars ((pos, WildCard) :: args)
         | ID id ->
             next_token pars;
-            parse_param_list pars (to_expr pars (Ident id) :: args)
+            parse_param_list pars ((pos, (Ident id)) :: args)
         | _ ->
             List.rev args
     in
@@ -543,9 +555,10 @@ params
 *)
 and parse_params pars =
     debug_parse_in "parse_params pars";
+    let pos = get_pos pars in
     let e =
         if peek_token pars = UNIT then
-            (next_token pars; [to_expr pars Unit])
+            (next_token pars; [(pos, Unit)])
         else
             parse_param_list pars []
     in
@@ -558,12 +571,13 @@ fn_expr
 *)
 and parse_fn pars =
     debug_parse_in "parse_fn";
+    let pos = get_pos pars in
     next_token pars;
     skip_newline pars;
     let args = parse_params pars in
     expect pars RARROW;
     skip_newline pars;
-    let e = List.fold_right (fun arg body -> to_expr pars ( Fn (arg, body))) args (parse_expr pars) in
+    let e = List.fold_right (fun arg body -> (pos, Fn (arg, body))) args (parse_expr pars) in
     debug_parse_out "parse_fn";
     e
 
@@ -573,6 +587,7 @@ if_expr
 *)
 and parse_if pars =
     debug_parse_in "parse_if";
+    let pos = get_pos pars in
     next_token pars;
     skip_newline pars;
     let e1 = parse_expr pars in
@@ -585,10 +600,10 @@ and parse_if pars =
             next_token pars;
             skip_newline pars;
             parse_expr pars
-        end else to_expr pars Unit
+        end else (get_pos pars, Unit)
     in
     debug_parse_out "parse_if";
-    to_expr pars (If (e1, e2, e3))
+    (pos, If (e1, e2, e3))
 
 (*
 match_expr
@@ -596,7 +611,7 @@ match_expr
 *)
 and parse_match pars =
     next_token pars;
-    to_expr pars Unit    (*TODO*)
+    (get_pos pars, Unit)    (*TODO*)
 
 (*
 expr_list
@@ -626,13 +641,15 @@ compound_expr
 *)
 and parse_compound pars =
     debug_parse_in "parse_compound";
+    let pos = get_pos pars in
     next_token pars;
     skip_newline pars;
     let e = parse_expr_list pars in
     expect pars RBRACE;
     skip_newline pars;
+    let e = (pos, Comp e) in
     debug_parse_out "parse_compound";
-    to_expr pars (Comp e)
+    e
 
 (*
 expr
@@ -648,7 +665,7 @@ and parse_expr pars =
     debug_parse_in "parse_expr";
     let e =
         match peek_token pars with
-        | EOF -> to_expr pars Eof
+        | EOF -> (get_pos pars, Eof)
         | NEWLINE | SEMI -> next_token pars; parse_expr pars
         | LET -> parse_let pars
         | FUN -> parse_fun pars
@@ -921,6 +938,7 @@ type_def
 *)
 let parse_type_def pars =
     debug_parse_in "parse_type_def";
+    let pos = get_pos pars in
     let tvl = parse_type_params_opt pars in
     skip_newline pars;
     let id = expect_id pars in
@@ -938,7 +956,7 @@ let parse_type_def pars =
                 parse_variant_decl pars (Some cid)
         | _ -> parse_type pars None
     in
-    let e = to_expr pars (TypeDecl (id, tvl, td)) in
+    let e = (pos, TypeDecl (id, tvl, td)) in
     debug_parse_out "parse_type_def";
     e
 
@@ -948,6 +966,7 @@ type_decl
 *)
 let parse_type_decl pars =
     debug_parse_in "parse_type_decl";
+    let pos = get_pos pars in
     next_token pars;
     skip_newline pars;
     let rec loop lst =
@@ -966,7 +985,7 @@ let parse_type_decl pars =
             e
         else begin
             let lst = loop [e] in
-            to_expr pars (TypeDeclAnd lst)
+            (pos, TypeDeclAnd lst)
         end
     in
     debug_parse_out "parse_type_decl";
@@ -978,11 +997,13 @@ module
 *)
 let parse_module pars =
     debug_parse_in "parse_module";
+    let pos = get_pos pars in
     next_token pars;
     skip_newline pars;
     let id = expect_c_id pars in
+    let e = (pos, Module id) in
     debug_parse_out "parse_module";
-    to_expr pars (Module id)
+    e
 
 (*
 import
@@ -990,6 +1011,7 @@ import
 *)
 let parse_import pars =
     debug_parse_in "parse_import";
+    let pos = get_pos pars in
     next_token pars;
     skip_newline pars;
     let id = expect_c_id pars in
@@ -1002,8 +1024,9 @@ let parse_import pars =
         end else
             None
     in
+    let e = (pos, Import (id, rename)) in
     debug_parse_out "parse_import";
-    to_expr pars (Import (id, rename))
+    e
 
 (*
 decl
@@ -1017,7 +1040,7 @@ let rec parse_decl pars =
     debug_parse_in "parse_decl";
     let e =
         match peek_token pars with
-        | EOF -> to_expr pars Eof
+        | EOF -> (get_pos pars, Eof)
         | NEWLINE | SEMI -> next_token pars; parse_decl pars
         | MODULE -> parse_module pars
         | IMPORT -> parse_import pars
@@ -1044,7 +1067,8 @@ let parse_decl_list pars =
             skip_newline pars;
             e::(loop ())
     in
-    let e = to_expr pars (Comp (loop ())) in
+    let pos = get_pos pars in
+    let e = (pos, Comp (loop ())) in
     debug_parse_out "parse_decl_list";
     e
 
@@ -1056,7 +1080,7 @@ program
 let parse scanner =
     let pars = new_parser scanner in
     if peek_token pars = EOF then
-        to_expr pars Eof
+        (get_pos pars, Eof)
     else
         parse_decl_list pars
     
