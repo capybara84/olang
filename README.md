@@ -1,5 +1,6 @@
-# olang
-O Language
+# wktk - The Programming Language
+
++（0ﾟ・∀・） + ﾜｸﾃｶ +
 
 - ML like
 - functional
