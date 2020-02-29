@@ -42,7 +42,7 @@ let scanner_test_text = "
 
 /*  6 */ identifier Ident 12345
 /*  7 */ 'a' '\\t' \"abc\\n\" 'b
-/*  8 */ module import as type
+/*  8 */ module import as decl type and
 
 // comment
 
@@ -50,7 +50,7 @@ let scanner_test_text = "
 /* 13 */ else match when mutable
 /* 14 */ _ + * % , ; . ..
 /* 15 */ - -> = == ! != < <= <- > >=
-/* 16 */ : := | || & && [ ] []
+/* 16 */ : :: := | || & && [ ] []
 /* 17 */ ( ) () { } /
 /* 18 */"
 
@@ -58,15 +58,16 @@ let scanner_test_tokens = [
     (1,2,NEWLINE); (1,6,NEWLINE);
     (10,6, ID "identifier"); (21,6, C_ID "Ident"); (27,6, INT_LIT 12345); (1,7, NEWLINE);
     (10,7, CHAR_LIT 'a'); (14,7, CHAR_LIT '\t'); (19,7, STRING_LIT "abc\n"); (27,7, TVAR 1); (1,8, NEWLINE);
-    (10,8, MODULE); (17,8, IMPORT); (24,8, AS); (27,8, TYPE); (1,10, NEWLINE); (1,12, NEWLINE);
+    (10,8, MODULE); (17,8, IMPORT); (24,8, AS); (27,8, DECL); (32,8, TYPE); (37,8, AND);
+    (1,10, NEWLINE); (1,12, NEWLINE);
     (10,12, LET); (14,12, REC); (18,12, FUN); (22,12, FN); (25,12, IF); (28,12, THEN); (1,13, NEWLINE);
     (10,13, ELSE); (15,13, MATCH); (21,13, WHEN); (26,13, MUTABLE); (1,14, NEWLINE);
     (10,14, WILDCARD); (12,14, PLUS); (14,14, STAR); (16,14, PERCENT); (18,14, COMMA);
     (20,14, SEMI); (22,14, DOT); (24,14, RANGE); (1,15, NEWLINE);
     (10,15, MINUS); (12,15, RARROW); (15,15, EQ); (17,15, EQL); (20,15, NOT); (22,15, NEQ);
     (25,15, LT); (27,15, LE); (30,15, LARROW); (33,15, GT); (35,15, GE); (1,16, NEWLINE);
-    (10,16, COLON); (12,16, ASSIGN); (15,16, OR); (17,16, LOR); (20,16, AND);
-    (22,16, LAND); (25,16, LSBRA); (27,16, RSBRA); (29,16, NULL); (1,17, NEWLINE);
+    (10,16, COLON); (12,16, DCOLON); (15,16, ASSIGN); (18,16, OR); (20,16, LOR); (23,16, AMP);
+    (25,16, LAND); (28,16, LSBRA); (30,16, RSBRA); (32,16, NULL); (1,17, NEWLINE);
     (10,17, LPAR); (12,17, RPAR); (14,17, UNIT); (17,17, LBRACE); (19,17, RBRACE);
     (21,17, SLASH); (1,18, NEWLINE); (9,18, EOF);
 ]
@@ -85,7 +86,7 @@ let scanner_test verbose =
             end;
             test_eq (c, n, tt) (t.col, t.line, t.token)
                 (Printf.sprintf "(%d:%d,'%s') != (%d:%d,'%s')" c n (token_to_string tt)
-                                    t.col t.line (token_to_string t.token)))
+                    t.col t.line (token_to_string t.token)))
             scanner_test_tokens tokens
     with Invalid_argument s -> test_fail @@ "Invalid_argument " ^ s
         | Error s -> test_fail s);
@@ -191,6 +192,62 @@ let parser_all_tests = [
     ("(1)", (1, IntLit 1));
     ("(1,2)", (1, Tuple [(1, IntLit 1); (1, IntLit 2)]));
     ("(1,2,3)", (1, Tuple [(1, IntLit 1); (1, IntLit 2); (1, IntLit 3)]));
+
+    ("type integer = int", (2, TypeDecl ("integer", [], TConstr (([], "int"), None))));
+    ("type c = char and s = string",
+        (3, TypeDeclAnd [(2, TypeDecl ("c", [], TConstr (([], "char"), None)));
+            (3, TypeDecl ("s", [], TConstr (([], "string"), None)))]));
+    ("type x = char and y = string and z = int",
+        (4, TypeDeclAnd [(3, TypeDecl ("x", [], TConstr (([], "char"), None)));
+            (3, TypeDecl ("y", [], TConstr (([], "string"), None)));
+            (4, TypeDecl ("z", [], TConstr (([], "int"), None)))]));
+    ("type f = unit -> int",
+        (5, TypeDecl ("f", [], TFun (TConstr (([], "unit"), None), TConstr (([], "int"), None)))));
+    ("type f = int -> int -> int",
+        (6, TypeDecl ("f", [], TFun (TConstr (([], "int"), None),
+            TFun (TConstr (([], "int"), None), TConstr (([], "int"), None))))));
+    ("type 'a f = 'a -> 'a -> 'a",
+        (7, TypeDecl ("f", [0], TFun (TVar (0, ref None), TFun (TVar (0, ref None), TVar (0, ref None))))));
+    ("type 'a x = 'a",
+        (8, TypeDecl ("x", [0], TVar (0, ref None))));
+    ("type t = int * char",
+        (9, TypeDecl ("t", [], TTuple [TConstr (([], "int"), None); TConstr (([], "char"), None)])));
+    ("type f = float", (10, TypeDecl ("f", [], TConstr (([], "float"), None))));
+    ("type l = int list",
+        (11, TypeDecl ("l", [], TConstr (([], "list"), Some (TConstr (([], "int"), None))))));
+    ("type 'a r = 'a ref", (12, TypeDecl ("r", [0], TConstr (([], "ref"), Some (TVar (0, ref None))))));
+    ("type 'a pair = ('a * 'a)",
+        (13, TypeDecl ("pair", [0], TTuple [TVar (0, ref None); TVar (0, ref None)])));
+    ("type  ('a, 'b) pair = ('a * 'b)",
+        (14, TypeDecl ("pair", [0; 1], TTuple [TVar (0, ref None); TVar (1, ref None)])));
+    ("type point2d = { mutable x :: int; mutable y :: int; }",
+        (14, TypeDecl ("point2d", [], TRecord [("x", TConstr (([], "int"), None), Mutable);
+            ("y", TConstr (([], "int"), None), Mutable)])));
+    ("type 'a point2d = { x :: 'a; y :: 'a; }",
+        (15, TypeDecl ("point2d", [0], TRecord [("x", TVar (0, ref None), Immutable);
+            ("y", TVar (0, ref None), Immutable)])));
+    ("type ('a, 'b, 'c) atob = { a :: 'a; b :: 'b; c :: 'c; }",
+        (16, TypeDecl ("atob", [0; 1; 2],
+            TRecord [("a", TVar (0, ref None), Immutable);
+                ("b", TVar (1, ref None), Immutable); ("c", TVar (2, ref None), Immutable)])));
+    ("type color = | Red | Green | Blue",
+        (18, TypeDecl ("color", [], TVariant [("Red", None); ("Green", None); ("Blue", None)])));
+    ("type color = Red | Green | Blue",
+        (19, TypeDecl ("color", [], TVariant [("Red", None); ("Green", None); ("Blue", None)])));
+    ("type color = Red | Green | Blue | RGB (int * int * int)",
+        (20, TypeDecl ("color", [], TVariant [("Red", None); ("Green", None); ("Blue", None);
+            ("RGB", Some (TTuple [TConstr (([], "int"), None);
+            TConstr (([], "int"), None); TConstr (([], "int"), None)]))])));
+    ("type 'a option = None | Some 'a",
+        (21, TypeDecl ("option", [0], TVariant [("None", None); ("Some", Some (TVar (0, ref None)))])));
+    ("type 'a tree = Node 'a | Leaf ('a tree * 'a tree)",
+        (22, TypeDecl ("tree", [0], TVariant [("Node", Some (TVar (0, ref None)));
+            ("Leaf", Some (TTuple [TConstr (([], "tree"), Some (TVar (0, ref None)));
+            TConstr (([], "tree"), Some (TVar (0, ref None)))]))])));
+    ("type itree = int tree",
+        (23, TypeDecl ("itree", [], TConstr (([], "tree"), Some (TConstr (([], "int"), None))))));
+    ("type lt = List.t",
+        (25, TypeDecl ("lt", [], TConstr ((["List"], "t"), None))));
 ]
 
 let parser_test verbose =
@@ -200,7 +257,7 @@ let parser_test verbose =
             if verbose then 
                 print_endline ("text    > " ^ text)
             else ();
-            let expr = Parser.parse @@ Scanner.from_string "TEST" text in
+            let expr = Parser.parse_one @@ Scanner.from_string "TEST" text in
             let parsed = expr_to_string expr in
             let expected = expr_to_string expected in
             if verbose then begin
@@ -287,12 +344,10 @@ let eval_all_tests = [
     ("module Main", VUnit);
     ("A.x", VInt 1);
     ("B.x", VInt 2);
-(*
     ("import List", VUnit);
     ("List.length [1,2,3]", VInt 3);
     ("import List as L", VUnit);
     ("L.length [1,2,3,4]", VInt 4);
-*)
 (*
     ("(fn n -> match n { 0 -> 'a' | 1 -> 'b' | 2 -> 'c' }) 1", VChar 'b');
     ("(fn n -> match n { (_,_,x) -> x }) (1,2,3)", VInt 3);
@@ -318,7 +373,7 @@ let eval_test verbose =
             if verbose then
                 print_endline ("text> " ^ text)
             else ();
-            let expr = Parser.parse @@ Scanner.from_string "TEST" text in
+            let expr = Parser.parse_one @@ Scanner.from_string "TEST" text in
             let (new_env, v) = Eval.eval_decl (Symbol.get_current_env ()) expr in
             Symbol.set_current_env new_env;
             if verbose then begin

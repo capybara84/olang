@@ -1,8 +1,20 @@
-* module
-* import
-* match
+* type decl
+* variant
 * record
-* type def
 * mutable
+* match
 * function match
 * compiler
+
+
+ーー
+skip_newline を適切にはさもう
+
+ーー
+Parser.to_expr がいまいち
+パースし終わって最終的にexpからexprに変換する時に使っているので、
+行番号がだいたい次の行になってしまう。
+パース開始時に行番号をひろって、リターン時に使う、っていう風に
+全体的に書き直す必要がある。
+
+

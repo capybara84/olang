@@ -60,7 +60,7 @@ let scan_number scan =
     let is_digit = function '0'..'9' -> true | _ -> false in
     INT_LIT (int_of_string (cut_token is_digit scan)) 
 
-let is_ident = function 'a'..'z' | 'A'..'Z' | '0'..'9' | '_' -> true | _ -> false
+let is_ident = function 'a'..'z' | 'A'..'Z' | '0'..'9' | '_' | '#' -> true | _ -> false
 
 let scan_c_ident scan =
     let id = cut_token is_ident scan in
@@ -70,9 +70,9 @@ let scan_ident scan =
     let id = cut_token is_ident scan in
     match id with
     | "_" -> WILDCARD | "module" -> MODULE | "import" -> IMPORT | "as" -> AS
-    | "type" -> TYPE | "let" -> LET | "rec" -> REC | "fun" -> FUN | "fn" -> FN
-    | "if" -> IF | "then" -> THEN | "else" -> ELSE | "match" -> MATCH
-    | "when" -> WHEN | "mutable" -> MUTABLE
+    | "decl" -> DECL | "type" -> TYPE | "and" -> AND | "let" -> LET | "rec" -> REC
+    | "fun" -> FUN | "fn" -> FN | "if" -> IF | "then" -> THEN | "else" -> ELSE
+    | "match" -> MATCH | "when" -> WHEN | "mutable" -> MUTABLE
     | _ -> ID id
 
 let get_char scan =
@@ -119,12 +119,10 @@ let scan_string scan =
         | None ->
             error scan "unexpected eof"
         | _ ->
-            begin
-                let c = get_char scan in
-                Buffer.add_char buffer c;
-                next_char scan;
-                loop ()
-            end
+            let c = get_char scan in
+            Buffer.add_char buffer c;
+            next_char scan;
+            loop ()
     in
     loop ();
     STRING_LIT (Buffer.contents buffer)
@@ -179,7 +177,7 @@ let rec scan_token scan =
     | Some ' ' | Some '\t' | Some '\r' -> next_char scan; scan_token scan
     | Some '\n' -> skip_newline scan
     | Some '0'..'9' -> scan_number scan
-    | Some 'a'..'z' | Some '_' -> scan_ident scan
+    | Some 'a'..'z' | Some '_' | Some '#' -> scan_ident scan
     | Some 'A'..'Z' -> scan_c_ident scan
     | Some '\'' -> scan_char scan
     | Some '"' -> scan_string scan
@@ -193,15 +191,26 @@ let rec scan_token scan =
     | Some '=' -> scan_token2 '=' EQL EQ
     | Some '!' -> scan_token2 '=' NEQ NOT
     | Some '>' -> scan_token2 '=' GE GT
-    | Some ':' -> scan_token2 '=' ASSIGN COLON
     | Some '|' -> scan_token2 '|' LOR OR
-    | Some '&' -> scan_token2 '&' LAND AND
+    | Some '&' -> scan_token2 '&' LAND AMP
     | Some '[' -> scan_token2 ']' NULL LSBRA
     | Some ']' -> next_char scan; RSBRA
     | Some ')' -> next_char scan; RPAR
     | Some '(' -> scan_token2 ')' UNIT LPAR
     | Some '{' -> next_char scan; LBRACE
     | Some '}' -> next_char scan; RBRACE
+    | Some ':' ->
+        begin
+            next_char scan;
+            match peek scan with
+            | Some ':' ->
+                next_char scan;
+                DCOLON
+            | Some '=' ->
+                next_char scan;
+                ASSIGN
+            | _ -> COLON
+        end
     | Some '<' ->
         begin
             next_char scan;

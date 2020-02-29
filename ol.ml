@@ -6,12 +6,14 @@ let rec top_level () =
         flush stdout;
         let scan = Scanner.from_string "STDIN" @@ input_line stdin in
         let rec loop env =
-            let e = Parser.parse scan in
+            let e = Parser.parse_one scan in
             if snd e = Eof then
                 () 
             else begin
                 if !g_verbose then
                     print_endline @@ expr_to_string e;
+                if !g_output_source then
+                    print_endline @@ expr_to_string_src e;
                 let v = Eval.eval_top e in
                 print_endline @@ value_to_string v;
                 loop ()
@@ -34,6 +36,7 @@ let main () =
             ("-t", Arg.Unit (fun () -> do_test := true),   " test");
             ("-dps", Arg.Unit (fun () -> Parser.debug_scope_flag := true), " parser scope debug");
             ("-dpt", Arg.Unit (fun () -> Parser.debug_token_flag := true), " parser token debug");
+            ("-os", Arg.Unit (fun () -> g_output_source := true), " output source style");
         ]
         (fun name -> filenames := name :: !filenames)
         "usage: ol [-v][-t] filename...";

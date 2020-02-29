@@ -2,6 +2,7 @@
 open Syntax
 
 let error n msg = raise (Error (string_of_int n ^ ": Runtime Error: " ^ msg))
+let warning n msg = print_endline @@ string_of_int n ^ ": Warning: " ^ msg
 
 let default_directory = "./"
 let default_extension = ".ol"
@@ -32,7 +33,7 @@ let rec eval_equal n = function
     | (VTuple xl, VTuple yl) -> equal_list n (xl, yl)
     | ((VCons _ as x), (VCons _ as y)) -> equal_cons n (x, y)
     | (VCons _, VNull) | (VNull, VCons _) -> false
-    | _ -> error n "type error (equal)"
+    | (x, y) -> error n ("type error (equal " ^ value_to_string x ^ " != " ^ value_to_string y ^ ")")
 and equal_list n = function
     | ([], []) -> true
     | (_, []) | ([], _) -> false
@@ -81,7 +82,7 @@ let eval_binary n = function
     | _ -> error n "type error (binary expression)"
 
 let rec eval env (n, e) =
-    if !g_verbose then print_endline @@ "eval: " ^ expr_to_string (n, e);
+    if !g_verbose then print_endline @@ "eval: " ^ expr_to_string_src (n, e);
     match e with
     | Eof | Unit -> VUnit
     | Null -> VNull
@@ -92,12 +93,15 @@ let rec eval env (n, e) =
     | FloatLit f -> VFloat f
     | StringLit s -> VString s
     | Ident id ->
-        (try
-            !(Env.lookup id env)
-        with Not_found ->
+        let v =
             (try
-                !(Symbol.lookup_default id)
-            with Not_found -> error n ("'" ^ id ^ "' not found")))
+                !(Env.lookup id env)
+            with Not_found ->
+                (try
+                    !(Symbol.lookup_default id)
+                with Not_found -> error n ("'" ^ id ^ "' not found")))
+        in
+        v
     | IdentMod (id, e) ->
         (try
             let tab = Symbol.lookup_module id in
@@ -144,7 +148,7 @@ let rec eval env (n, e) =
     | Comp el ->
         let (_, v) = eval_list env el in
         v
-    | _ -> failwith "eval bug"
+    | _ -> failwith ("eval bug :" ^ expr_to_string (0,e) )
 
 and eval_list env el =
     match el with
@@ -154,14 +158,20 @@ and eval_list env el =
         if xs == [] then
             (new_env, v)
         else if v <> VUnit then
-            error (fst x) ("unit required")
+            (warning (fst x) "Type unit required";
+            eval_list new_env xs)
         else
             eval_list new_env xs
 
 and eval_decl env x =
-    if !g_verbose then print_endline @@ "eval_decl: " ^ expr_to_string x;
+    if !g_verbose then print_endline @@ "eval_decl: " ^ expr_to_string_src x;
     match x with
-    | (_, Ident "env") ->
+    | (_, Comp []) ->
+        (env, VUnit)
+    | (_, Comp el) ->
+        let (env, v) = eval_list env el in
+        (env, v)
+    | (_, Ident "#env") ->
         Symbol.show_all_modules ();
         (env, VUnit)
     | (_, Let (id, e)) ->
@@ -173,6 +183,11 @@ and eval_decl env x =
         let new_env = Env.extend id r env in
         r := eval new_env e;
         (new_env, VUnit)
+    | (_, TypeDecl _) ->
+        type_decl env x
+    | (_, TypeDeclAnd el) ->
+        List.iter (fun x -> ignore @@ type_decl env x) el;
+        (env, VUnit)
     | (_, Module id) ->
         let tab = Symbol.set_module id in
         (tab.env, VUnit)
@@ -185,6 +200,12 @@ and eval_decl env x =
         (env, VUnit)
     | e ->
         (env, eval env e)
+
+and type_decl env e =
+    match e with
+    | (n, TypeDecl (id, tvl, t)) ->
+        (env, VUnit)    (* TODO *)
+    | _ -> failwith "type decl bug"
 
 and import id =
     if Symbol.exist_module id then
@@ -208,15 +229,22 @@ and load_source filename =
             match e with
             | (_, Eof) -> ()
             | _ ->
-                let v = eval_top e in
-                if v <> VUnit then
-                    print_endline "Warning: The expression should have type unit";
+                if !g_verbose then
+                    print_endline @@ expr_to_string e;
+                if !g_output_source then
+                    print_endline @@ "(\"" ^ expr_to_string e ^ "\", " ^ expr_to_string_src e ^ ");"
+                else begin
+                    let v = eval_top e in
+                    if v <> VUnit then
+                        print_endline "Warning: The expression should have type unit"
+                end;
                 loop ()
         in loop ()
     with Error s | Sys_error s -> print_endline s
 
 and eval_top e =
-    let (env, v) = eval_decl (Symbol.get_current_env ()) e in
+    let tab = Symbol.get_current_module () in
+    let (env, v) = eval_decl tab.env e in
     Symbol.set_current_env env;
     v
 
