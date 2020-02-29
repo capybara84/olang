@@ -82,11 +82,11 @@ let scanner_test verbose =
         List.iter2 (fun (c,n,tt) t ->
             if verbose then begin
                 Printf.printf "required [%d:%d '%s']\n" c n (token_to_string tt);
-                Printf.printf "parsed [%d:%d '%s']\n" t.col t.line (token_to_string t.token)
+                Printf.printf "parsed [%d:%d '%s']\n" t.pos.col t.pos.line (token_to_string t.token)
             end;
-            test_eq (c, n, tt) (t.col, t.line, t.token)
+            test_eq (c, n, tt) (t.pos.col, t.pos.line, t.token)
                 (Printf.sprintf "(%d:%d,'%s') != (%d:%d,'%s')" c n (token_to_string tt)
-                    t.col t.line (token_to_string t.token)))
+                    t.pos.col t.pos.line (token_to_string t.token)))
             scanner_test_tokens tokens
     with Invalid_argument s -> test_fail @@ "Invalid_argument " ^ s
         | Error s -> test_fail s);

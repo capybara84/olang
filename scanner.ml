@@ -5,34 +5,34 @@ type t = {
     filename : string;
     source : string;
     len : int;
-    mutable pos : int;
+    mutable current : int;
     mutable cur_col : int;
     mutable line : int;
     mutable col : int;
 }
 
-let get_line scan = scan.line
+let get_pos scan = { filename = scan.filename; line = scan.line; col = scan.col }
 
-let get_source_position scan =
-    Printf.sprintf "%s, line %d, col %d" scan.filename scan.line scan.col
+let get_source_position_string scan =
+    get_position_string @@ get_pos scan
 
 let error scan msg =
-    raise (Error (get_source_position scan ^ ": " ^ msg))
+    raise (Error (get_source_position_string scan ^ ": " ^ msg))
 
 let is_end scan =
-    scan.pos = scan.len
+    scan.current = scan.len
 
 let peek scan =
     if is_end scan then
         None
     else
-        Some scan.source.[scan.pos]
+        Some scan.source.[scan.current]
 
 let next_char scan =
     if is_end scan then
         ()
     else begin
-        scan.pos <- scan.pos + 1;
+        scan.current <- scan.current + 1;
         scan.cur_col <- scan.cur_col + 1
     end
 
@@ -244,7 +244,8 @@ let rec scan_token scan =
 
 let get_token scan =
     let tok = scan_token scan in
-    { token = tok; line = scan.line; col = scan.col }
+    let pos = { filename = scan.filename; line = scan.line; col = scan.col } in
+    { token = tok; pos = pos; }
 
 let get_tokens scan =
     let rec loop result =
@@ -256,5 +257,5 @@ let get_tokens scan =
     List.rev (loop [])
 
 let from_string name s =
-    { filename = name; source = s; len = String.length s; pos = 0; cur_col = 1; line = 1; col = 1 }
+    { filename = name; source = s; len = String.length s; current = 0; cur_col = 1; line = 1; col = 1 }
 

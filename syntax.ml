@@ -6,6 +6,12 @@ let g_output_source = ref false
 
 type ident = string
 
+type source_pos = {
+    filename : string;
+    line : int;
+    col : int;
+}
+
 type token
     = EOF | NEWLINE | ID of ident | C_ID of ident | BOOL_LIT of bool | INT_LIT of int
     | CHAR_LIT of char | FLOAT_LIT of float | STRING_LIT of string | TVAR of int
@@ -17,8 +23,7 @@ type token
 
 type token_t = {
     token : token;
-    line : int;
-    col : int;
+    pos : source_pos;
 }
 
 type type_name = ident list * ident
@@ -77,6 +82,11 @@ type symtab = {
     mutable tenv : typ ref Env.t;
     module_name : ident;
 }
+
+(* ------------- *)
+
+let get_position_string pos =
+    Printf.sprintf "%s, line %d, col %d" pos.filename pos.line pos.col
 
 let tvar_to_string n =
     "'" ^

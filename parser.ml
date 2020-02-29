@@ -7,10 +7,11 @@ type t = {
 }
 
 let get_source_position pars =
-    Scanner.get_source_position pars.scanner
+    get_position_string @@ Scanner.get_pos pars.scanner
 
 let get_line pars =
-    Scanner.get_line pars.scanner
+    let pos = Scanner.get_pos pars.scanner in
+    pos.line
 
 let to_expr pars e = (get_line pars, e)
 
