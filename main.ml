@@ -39,7 +39,7 @@ let main () =
             ("-os", Arg.Unit (fun () -> g_output_source := true), " output source style");
         ]
         (fun name -> filenames := name :: !filenames)
-        "usage: ol [-v][-t] filename...";
+        "usage: wktk [-v][-t] filename...";
     Symbol.set_default_module ();
     Builtins.init ();
     List.iter Eval.load_source (List.rev !filenames);
@@ -48,5 +48,3 @@ let main () =
     else if List.length !filenames = 0 then
         top_level ()
 
-let () =
-    main ()

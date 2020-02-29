@@ -1,5 +1,5 @@
 /*
-    fact.ol
+    fact.w
 */
 
 fun fact n =

@@ -5,7 +5,7 @@ let error n msg = raise (Error (string_of_int n ^ ": Runtime Error: " ^ msg))
 let warning n msg = print_endline @@ string_of_int n ^ ": Warning: " ^ msg
 
 let default_directory = "./"
-let default_extension = ".ol"
+let default_extension = ".w"
 
 let make_module_filename name =
     default_directory ^ String.uncapitalize name ^ default_extension
