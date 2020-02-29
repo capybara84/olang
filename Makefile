@@ -1,4 +1,4 @@
-PROGRAM = ol
+PROGRAM = wktk
 
 all : byte
 
