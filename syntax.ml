@@ -68,7 +68,7 @@ type exp =
     | Module of ident
     | Import of ident * ident option
 and
-    expr = int * exp
+    expr = source_pos * exp
 
 
 type value =
@@ -256,6 +256,12 @@ and vcons_to_string = function
 
 
 (*---------------------------------*)
+let string_of_pos pos =
+    if !g_output_source then
+        "dummy"
+    else
+        Printf.sprintf "{filename=\"%s\"; line=%d; col=%d}" pos.filename pos.line pos.col
+
 let rec tname_to_string_src (idl, id) =
     let rec id_list_to_string = function
         | [] -> ""
@@ -306,48 +312,48 @@ let string_of_unop_src = function
     | UMinus -> "UMinus"
 
 let rec expr_to_string_src = function
-    | (n, Eof) -> "(" ^ string_of_int n ^ ", Eof)"
-    | (n, Unit) -> "(" ^ string_of_int n ^ ", Unit)"
-    | (n, Null) -> "(" ^ string_of_int n ^ ", Null)"
-    | (n, WildCard) -> "(" ^ string_of_int n ^ ", WildCard)"
-    | (n, BoolLit b) -> "(" ^ string_of_int n ^ ", BoolLit " ^ string_of_bool b ^ ")"
-    | (n, IntLit i) -> "(" ^ string_of_int n ^ ", IntLit " ^ string_of_int i ^ ")"
-    | (n, CharLit c) -> "(" ^ string_of_int n ^ ", CharLit '" ^ String.make 1 c ^ "')"
-    | (n, FloatLit f) -> "(" ^ string_of_int n ^ ", FloatLit " ^ string_of_float f ^ ")"
-    | (n, StringLit s) -> "(" ^ string_of_int n ^ ", StringLit \"" ^ s ^ "\")"
-    | (n, Ident id) -> "(" ^ string_of_int n ^ ", Ident \"" ^ id ^ "\")"
+    | (n, Eof) -> "(" ^ string_of_pos n ^ ", Eof)"
+    | (n, Unit) -> "(" ^ string_of_pos n ^ ", Unit)"
+    | (n, Null) -> "(" ^ string_of_pos n ^ ", Null)"
+    | (n, WildCard) -> "(" ^ string_of_pos n ^ ", WildCard)"
+    | (n, BoolLit b) -> "(" ^ string_of_pos n ^ ", BoolLit " ^ string_of_bool b ^ ")"
+    | (n, IntLit i) -> "(" ^ string_of_pos n ^ ", IntLit " ^ string_of_int i ^ ")"
+    | (n, CharLit c) -> "(" ^ string_of_pos n ^ ", CharLit '" ^ String.make 1 c ^ "')"
+    | (n, FloatLit f) -> "(" ^ string_of_pos n ^ ", FloatLit " ^ string_of_float f ^ ")"
+    | (n, StringLit s) -> "(" ^ string_of_pos n ^ ", StringLit \"" ^ s ^ "\")"
+    | (n, Ident id) -> "(" ^ string_of_pos n ^ ", Ident \"" ^ id ^ "\")"
     | (n, IdentMod (id, e)) ->
-        "(" ^ string_of_int n ^ ", IdentMod (\"" ^ id ^ "\", " ^ expr_to_string_src e ^ ")"
-    | (n, Record (e, id)) -> "(" ^ string_of_int n ^ ", Record (" ^ expr_to_string_src e ^ ", \"" ^ id ^ "\"))"
-    | (n, Tuple el) -> "(" ^ string_of_int n ^ ", Tuple [" ^ expr_list_to_string_src el ^ "])"
+        "(" ^ string_of_pos n ^ ", IdentMod (\"" ^ id ^ "\", " ^ expr_to_string_src e ^ ")"
+    | (n, Record (e, id)) -> "(" ^ string_of_pos n ^ ", Record (" ^ expr_to_string_src e ^ ", \"" ^ id ^ "\"))"
+    | (n, Tuple el) -> "(" ^ string_of_pos n ^ ", Tuple [" ^ expr_list_to_string_src el ^ "])"
     | (n, Binary (op, lhs, rhs)) ->
-        "(" ^ string_of_int n ^ ", Binary (" ^ string_of_binop_src op ^ ", "
+        "(" ^ string_of_pos n ^ ", Binary (" ^ string_of_binop_src op ^ ", "
         ^ expr_to_string_src lhs ^ ", " ^ expr_to_string_src rhs ^ "))"
     | (n, Unary (op, e)) ->
-        "(" ^ string_of_int n ^ ", Unary (" ^ string_of_unop_src op ^ ", " ^ expr_to_string_src e ^ "))"
-    | (n, Let (id, e)) -> "(" ^ string_of_int n ^ ", Let (\"" ^ id ^ "\", " ^ expr_to_string_src e ^ "))"
+        "(" ^ string_of_pos n ^ ", Unary (" ^ string_of_unop_src op ^ ", " ^ expr_to_string_src e ^ "))"
+    | (n, Let (id, e)) -> "(" ^ string_of_pos n ^ ", Let (\"" ^ id ^ "\", " ^ expr_to_string_src e ^ "))"
     | (n, LetRec (id, e)) ->
-        "(" ^ string_of_int n ^ ", LetRec (\"" ^ id ^ "\", " ^ expr_to_string_src e ^ "))"
+        "(" ^ string_of_pos n ^ ", LetRec (\"" ^ id ^ "\", " ^ expr_to_string_src e ^ "))"
     | (n, Fn (e1, e2)) ->
-        "(" ^ string_of_int n ^ ", Fn (" ^ expr_to_string_src e1 ^ ", " ^ expr_to_string_src e2 ^ "))"
+        "(" ^ string_of_pos n ^ ", Fn (" ^ expr_to_string_src e1 ^ ", " ^ expr_to_string_src e2 ^ "))"
     | (n, Apply (e1, e2)) ->
-        "(" ^ string_of_int n ^ ", Apply (" ^ expr_to_string_src e1 ^ ", " ^ expr_to_string_src e2 ^ "))"
+        "(" ^ string_of_pos n ^ ", Apply (" ^ expr_to_string_src e1 ^ ", " ^ expr_to_string_src e2 ^ "))"
     | (n, If (e1, e2, e3)) ->
-        "(" ^ string_of_int n ^ ", If (" ^ expr_to_string_src e1 ^ ", "
+        "(" ^ string_of_pos n ^ ", If (" ^ expr_to_string_src e1 ^ ", "
         ^ expr_to_string_src e2 ^ ", " ^ expr_to_string_src e3 ^ "))"
-    | (n, Comp el) -> "(" ^ string_of_int n ^ ", Comp [" ^ expr_list_to_string_src el ^ "])"
+    | (n, Comp el) -> "(" ^ string_of_pos n ^ ", Comp [" ^ expr_list_to_string_src el ^ "])"
     | (n, Match (e, lst)) ->
-        "(" ^ string_of_int n ^ ", Match (" ^ expr_to_string_src e ^ ", ["
+        "(" ^ string_of_pos n ^ ", Match (" ^ expr_to_string_src e ^ ", ["
         ^ match_list_to_string_src lst ^ "]))"
     | (n, TypeDecl (id, tvl, td)) ->
-        "(" ^ string_of_int n ^ ", TypeDecl (\"" ^ id ^ "\", [" ^ tvar_list_to_string_src tvl ^ "], "
+        "(" ^ string_of_pos n ^ ", TypeDecl (\"" ^ id ^ "\", [" ^ tvar_list_to_string_src tvl ^ "], "
             ^ type_to_string_src td ^ "))"
     | (n, TypeDeclAnd el) ->
-        "(" ^ string_of_int n ^ ", TypeDeclAnd [" ^ expr_list_to_string_src el ^ "])"
-    | (n, Module name) -> "(" ^ string_of_int n ^ ", Module " ^ name ^ ")"
+        "(" ^ string_of_pos n ^ ", TypeDeclAnd [" ^ expr_list_to_string_src el ^ "])"
+    | (n, Module name) -> "(" ^ string_of_pos n ^ ", Module " ^ name ^ ")"
     | (n, Import (name, Some rename)) ->
-        "(" ^ string_of_int n ^ ", Import (" ^ name ^ ", Some " ^ rename ^ "))"
-    | (n, Import (name, None)) -> "(" ^ string_of_int n ^ ", Import " ^ name ^ ", None)"
+        "(" ^ string_of_pos n ^ ", Import (" ^ name ^ ", Some " ^ rename ^ "))"
+    | (n, Import (name, None)) -> "(" ^ string_of_pos n ^ ", Import " ^ name ^ ", None)"
 and expr_list_to_string_src = function
     | [] -> ""
     | x::[] -> expr_to_string_src x

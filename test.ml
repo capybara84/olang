@@ -93,106 +93,162 @@ let scanner_test verbose =
     print_newline ()
 
 
-let parser_all_tests = [
-    ("'a'", (1, CharLit 'a'));
-    ("\"abc\"", (1, StringLit "abc"));
-    ("12", (1, IntLit 12));
-    ("300 + 12",
-        (1, Binary (BinAdd, (1, IntLit 300), (1, IntLit 12))));
-    ("300 * 12 + 3",
-        (1, Binary (BinAdd,
-            (1, Binary (BinMul, (1, IntLit 300), (1, IntLit 12))), (1, IntLit 3))));
-    ("300 * (12 + 3)",
-        (1, Binary (BinMul, (1, IntLit 300),
-                (1, Binary (BinAdd, (1, IntLit 12), (1, IntLit 3))))));
-    ("1 / 2 < 3 * 4",
-        (1, Binary (BinLT, (1, (Binary (BinDiv, (1, IntLit 1), (1, IntLit 2)))),
-                        (1, (Binary (BinMul, (1, IntLit 3), (1, IntLit 4)))))));
-    ("2 * -(1 + 2)",
-        (1, Binary (BinMul, (1, IntLit 2),
-            (1, (Unary (UMinus, (1, Binary (BinAdd, (1, IntLit 1), (1, IntLit 2)))))))));
-    ("5 % 2",
-        (1, Binary (BinMod, (1, IntLit 5), (1, IntLit 2))));
-    ("a && b",
-        (1, Binary (BinLand, (1, Ident "a"), (1, Ident "b"))));
-    ("a || b",
-        (1, Binary (BinLor, (1, Ident "a"), (1, Ident "b"))));
-    ("!(x < y)",
-        (1, Unary (UNot, (1, Binary (BinLT, (1, Ident "x"), (1, Ident "y"))))));
-    ("1 <= 2",
-        (1, Binary (BinLE, (1, IntLit 1), (1, IntLit 2))));
-    ("1 > 2",
-        (1, Binary (BinGT, (1, IntLit 1), (1, IntLit 2))));
-    ("1 >= 2",
-        (1, Binary (BinGE, (1, IntLit 1), (1, IntLit 2))));
-    ("1 == 2",
-        (1, Binary (BinEql, (1, IntLit 1), (1, IntLit 2))));
-    ("1 != 2",
-        (1, Binary (BinNeq, (1, IntLit 1), (1, IntLit 2))));
-    ("fn x -> x + 1",
-        (1, Fn ((1, Ident "x"), (1, Binary (BinAdd, (1, Ident "x"), (1, IntLit 1))))));
-    ("f 3",
-        (1, Apply ((1, Ident "f"), (1, IntLit 3))));
-    ("-(f 3)",
-        (1, Unary (UMinus, (1, Apply ((1, Ident "f"), (1, IntLit 3))))));
-    ("f (-3)",
-        (1, Apply ((1, Ident "f"), (1, Unary (UMinus, (1, IntLit 3))))));
-    ("f -3",
-        (1, Binary (BinSub, (1, Ident "f"), (1, IntLit 3))));
-    ("fn () -> 1",
-        (1, Fn ((1, Unit), (1, IntLit 1))));
-    ("(fn x -> x + 1) (300 * (12 + 3))",
-        (1, Apply ((1, Fn ((1, Ident "x"),
-                            (1, Binary (BinAdd, (1, Ident "x"), (1, IntLit 1))))), 
-            (1, Binary (BinMul, (1, IntLit 300),
-                (1, Binary (BinAdd, (1, IntLit 12), (1, IntLit 3))))))));
-    ("let rec fact = fn n -> if n < 1 then 1 else n * fact (n - 1)",
-        (1, LetRec ("fact",
-            (1, Fn ((1, Ident "n"),
-                    (1, If ((1, Binary (BinLT, (1, Ident "n"), (1, IntLit 1))),
-                          (1, IntLit 1),
-                          (1, Binary (BinMul, (1, Ident "n"),
-                                        (1, Apply ((1, Ident "fact"),
-                                            (1, Binary (BinSub, (1, Ident "n"),
-                                                (1, IntLit 1))))))))))))));
-    ("{}",
-        (1, Comp []));
-    ("{1; 2; }",
-        (1, Comp [(1, IntLit 1); (1, IntLit 2)]));
-    ("{1; 2; 3}",
-        (1, Comp [(1, IntLit 1); (1, IntLit 2); (1, IntLit 3)]));
-    ("f 1 2",
-        (1, Apply ((1, Apply ((1, Ident "f"), (1, IntLit 1))), (1, IntLit 2))));
-    ("1:2:3:[]",
-        (1, (Binary (BinCons, (1, IntLit 1),
-                 (1, (Binary (BinCons, (1, IntLit 2),
-                          (1, (Binary (BinCons, (1, IntLit 3), (1, Null)))))))))));
-    ("[1,2,3]",
-        (1, (Binary (BinCons, (1, IntLit 1),
-                 (1, (Binary (BinCons, (1, IntLit 2),
-                          (1, (Binary (BinCons, (1, IntLit 3), (1, Null)))))))))));
-    ("(1)", (1, IntLit 1));
-    ("true", (1, BoolLit true));
-    ("false", (1, BoolLit false));
-    ("fun one () = 1",
-        (1, LetRec ("one", (1, (Fn ((1, Unit), (1, IntLit 1)))))));
-    ("fun fact n = if n < 1 then 1 else n * fact (n-1)",
-        (1, LetRec ("fact",
-            (1, Fn ((1, Ident "n"),
-                    (1, If ((1, Binary (BinLT, (1, Ident "n"), (1, IntLit 1))),
-                          (1, IntLit 1),
-                          (1, Binary (BinMul, (1, Ident "n"),
-                                        (1, Apply ((1, Ident "fact"),
-                                            (1, Binary (BinSub, (1, Ident "n"),
-                                                (1, IntLit 1))))))))))))));
-    ("module List", (1, Module "List"));
-    ("import Array", (1, Import ("Array", None)));
-    ("import Array as A", (1, Import ("Array", Some "A")));
-    ("Array.length", (1, IdentMod ("Array", (1, Ident "length"))));
-    ("(1)", (1, IntLit 1));
-    ("(1,2)", (1, Tuple [(1, IntLit 1); (1, IntLit 2)]));
-    ("(1,2,3)", (1, Tuple [(1, IntLit 1); (1, IntLit 2); (1, IntLit 3)]));
+let dummy = {filename=""; line=1; col=1;}
 
+let parser_all_tests = [
+    ("'a'", (dummy, CharLit 'a'));
+    ("\"abc\"", (dummy, StringLit "abc"));
+    ("12", (dummy, IntLit 12));
+    ("300 + 12",
+        (dummy, Binary (BinAdd, (dummy, IntLit 300), (dummy, IntLit 12))));
+    ("300 * 12 + 3",
+        (dummy, Binary (BinAdd,
+            (dummy, Binary (BinMul, (dummy, IntLit 300), (dummy, IntLit 12))), (dummy, IntLit 3))));
+    ("300 * (12 + 3)",
+        (dummy, Binary (BinMul, (dummy, IntLit 300),
+                (dummy, Binary (BinAdd, (dummy, IntLit 12), (dummy, IntLit 3))))));
+    ("1 / 2 < 3 * 4",
+        (dummy, Binary (BinLT, (dummy, (Binary (BinDiv, (dummy, IntLit 1), (dummy, IntLit 2)))),
+                        (dummy, (Binary (BinMul, (dummy, IntLit 3), (dummy, IntLit 4)))))));
+    ("2 * -(1 + 2)",
+        (dummy, Binary (BinMul, (dummy, IntLit 2),
+            (dummy, (Unary (UMinus, (dummy, Binary (BinAdd, (dummy, IntLit 1), (dummy, IntLit 2)))))))));
+    ("5 % 2",
+        (dummy, Binary (BinMod, (dummy, IntLit 5), (dummy, IntLit 2))));
+    ("a && b",
+        (dummy, Binary (BinLand, (dummy, Ident "a"), (dummy, Ident "b"))));
+    ("a || b",
+        (dummy, Binary (BinLor, (dummy, Ident "a"), (dummy, Ident "b"))));
+    ("!(x < y)",
+        (dummy, Unary (UNot, (dummy, Binary (BinLT, (dummy, Ident "x"), (dummy, Ident "y"))))));
+    ("1 <= 2",
+        (dummy, Binary (BinLE, (dummy, IntLit 1), (dummy, IntLit 2))));
+    ("1 > 2",
+        (dummy, Binary (BinGT, (dummy, IntLit 1), (dummy, IntLit 2))));
+    ("1 >= 2",
+        (dummy, Binary (BinGE, (dummy, IntLit 1), (dummy, IntLit 2))));
+    ("1 == 2",
+        (dummy, Binary (BinEql, (dummy, IntLit 1), (dummy, IntLit 2))));
+    ("1 != 2",
+        (dummy, Binary (BinNeq, (dummy, IntLit 1), (dummy, IntLit 2))));
+    ("fn x -> x + 1",
+        (dummy, Fn ((dummy, Ident "x"), (dummy, Binary (BinAdd, (dummy, Ident "x"), (dummy, IntLit 1))))));
+    ("f 3",
+        (dummy, Apply ((dummy, Ident "f"), (dummy, IntLit 3))));
+    ("-(f 3)",
+        (dummy, Unary (UMinus, (dummy, Apply ((dummy, Ident "f"), (dummy, IntLit 3))))));
+    ("f (-3)",
+        (dummy, Apply ((dummy, Ident "f"), (dummy, Unary (UMinus, (dummy, IntLit 3))))));
+    ("f -3",
+        (dummy, Binary (BinSub, (dummy, Ident "f"), (dummy, IntLit 3))));
+    ("fn () -> 1",
+        (dummy, Fn ((dummy, Unit), (dummy, IntLit 1))));
+    ("(fn x -> x + 1) (300 * (12 + 3))",
+        (dummy, Apply ((dummy, Fn ((dummy, Ident "x"),
+                            (dummy, Binary (BinAdd, (dummy, Ident "x"), (dummy, IntLit 1))))), 
+            (dummy, Binary (BinMul, (dummy, IntLit 300),
+                (dummy, Binary (BinAdd, (dummy, IntLit 12), (dummy, IntLit 3))))))));
+    ("let rec fact = fn n -> if n < 1 then 1 else n * fact (n - 1)",
+        (dummy, LetRec ("fact",
+            (dummy, Fn ((dummy, Ident "n"),
+                    (dummy, If ((dummy, Binary (BinLT, (dummy, Ident "n"), (dummy, IntLit 1))),
+                          (dummy, IntLit 1),
+                          (dummy, Binary (BinMul, (dummy, Ident "n"),
+                                        (dummy, Apply ((dummy, Ident "fact"),
+                                            (dummy, Binary (BinSub, (dummy, Ident "n"),
+                                                (dummy, IntLit 1))))))))))))));
+    ("{}",
+        (dummy, Comp []));
+    ("{1; 2; }",
+        (dummy, Comp [(dummy, IntLit 1); (dummy, IntLit 2)]));
+    ("{1; 2; 3}",
+        (dummy, Comp [(dummy, IntLit 1); (dummy, IntLit 2); (dummy, IntLit 3)]));
+    ("f 1 2",
+        (dummy, Apply ((dummy, Apply ((dummy, Ident "f"), (dummy, IntLit 1))), (dummy, IntLit 2))));
+    ("1:2:3:[]",
+        (dummy, (Binary (BinCons, (dummy, IntLit 1),
+                 (dummy, (Binary (BinCons, (dummy, IntLit 2),
+                          (dummy, (Binary (BinCons, (dummy, IntLit 3), (dummy, Null)))))))))));
+    ("[1,2,3]",
+        (dummy, (Binary (BinCons, (dummy, IntLit 1),
+                 (dummy, (Binary (BinCons, (dummy, IntLit 2),
+                          (dummy, (Binary (BinCons, (dummy, IntLit 3), (dummy, Null)))))))))));
+    ("(1)", (dummy, IntLit 1));
+    ("true", (dummy, BoolLit true));
+    ("false", (dummy, BoolLit false));
+    ("fun one () = 1",
+        (dummy, LetRec ("one", (dummy, (Fn ((dummy, Unit), (dummy, IntLit 1)))))));
+    ("fun fact n = if n < 1 then 1 else n * fact (n-1)",
+        (dummy, LetRec ("fact",
+            (dummy, Fn ((dummy, Ident "n"),
+                    (dummy, If ((dummy, Binary (BinLT, (dummy, Ident "n"), (dummy, IntLit 1))),
+                          (dummy, IntLit 1),
+                          (dummy, Binary (BinMul, (dummy, Ident "n"),
+                                        (dummy, Apply ((dummy, Ident "fact"),
+                                            (dummy, Binary (BinSub, (dummy, Ident "n"),
+                                                (dummy, IntLit 1))))))))))))));
+    ("module List", (dummy, Module "List"));
+    ("import Array", (dummy, Import ("Array", None)));
+    ("import Array as A", (dummy, Import ("Array", Some "A")));
+    ("Array.length", (dummy, IdentMod ("Array", (dummy, Ident "length"))));
+    ("(1)", (dummy, IntLit 1));
+    ("(1,2)", (dummy, Tuple [(dummy, IntLit 1); (dummy, IntLit 2)]));
+    ("(1,2,3)", (dummy, Tuple [(dummy, IntLit 1); (dummy, IntLit 2); (dummy, IntLit 3)]));
+
+
+    ("type integer = int", (dummy, TypeDecl ("integer", [], TConstr (([], "int"), None))));
+    ("type c = char and s = string",
+        (dummy, TypeDeclAnd [(dummy, TypeDecl ("c", [], TConstr (([], "char"), None)));
+            (dummy, TypeDecl ("s", [], TConstr (([], "string"), None)))]));
+    ("type x = char and y = string and z = int",
+        (dummy, TypeDeclAnd [(dummy, TypeDecl ("x", [], TConstr (([], "char"), None)));
+            (dummy, TypeDecl ("y", [], TConstr (([], "string"), None)));
+                (dummy, TypeDecl ("z", [], TConstr (([], "int"), None)))]));
+    ("type f = (unit -> int)",
+        (dummy, TypeDecl ("f", [], TFun (TConstr (([], "unit"), None), TConstr (([], "int"), None)))));
+    ("type f = int -> int -> int)",
+        (dummy, TypeDecl ("f", [], TFun (TConstr (([], "int"), None),
+            TFun (TConstr (([], "int"), None), TConstr (([], "int"), None))))));
+    ("type 'a f = ('a -> ('a -> 'a))",
+        (dummy, TypeDecl ("f", [0], TFun (TVar (0, ref None), TFun (TVar (0, ref None), TVar (0, ref None))))));
+    ("type 'a x = 'a", (dummy, TypeDecl ("x", [0], TVar (0, ref None))));
+    ("type t = (int * char)",
+        (dummy, TypeDecl ("t", [], TTuple [TConstr (([], "int"), None); TConstr (([], "char"), None)])));
+    ("type f = float",
+        (dummy, TypeDecl ("f", [], TConstr (([], "float"), None))));
+    ("type l = (int list)",
+        (dummy, TypeDecl ("l", [], TConstr (([], "list"), Some (TConstr (([], "int"), None))))));
+    ("type 'a r = ('a ref)",
+        (dummy, TypeDecl ("r", [0], TConstr (([], "ref"), Some (TVar (0, ref None))))));
+    ("type 'a pair = ('a * 'a)",
+        (dummy, TypeDecl ("pair", [0], TTuple [TVar (0, ref None); TVar (0, ref None)])));
+    ("type  ('a, 'b) pair = ('a * 'b)",
+        (dummy, TypeDecl ("pair", [0; 1], TTuple [TVar (0, ref None); TVar (1, ref None)])));
+    ("type point2d = { mutable x :: int; mutable y :: int; }",
+        (dummy, TypeDecl ("point2d", [], TRecord [("x", TConstr (([], "int"), None), Mutable);
+            ("y", TConstr (([], "int"), None), Mutable)])));
+    ("type 'a point2d = { x :: 'a; y :: 'a; }",
+        (dummy, TypeDecl ("point2d", [0], TRecord [("x", TVar (0, ref None), Immutable);
+            ("y", TVar (0, ref None), Immutable)])));
+    ("type  ('a, 'b, 'c) atob = { a :: 'a; b :: 'b; c :: 'c; }",
+        (dummy, TypeDecl ("atob", [0; 1; 2], TRecord [("a", TVar (0, ref None), Immutable);
+            ("b", TVar (1, ref None), Immutable); ("c", TVar (2, ref None), Immutable)])));
+    ("type color =  | Red | Green | Blue",
+        (dummy, TypeDecl ("color", [], TVariant [("Red", None); ("Green", None); ("Blue", None)])));
+    ("type color =  | Red | Green | Blue",
+        (dummy, TypeDecl ("color", [], TVariant [("Red", None); ("Green", None); ("Blue", None)])));
+    ("type color =  | Red | Green | Blue | RGB (int * int * int)",
+        (dummy, TypeDecl ("color", [], TVariant [("Red", None); ("Green", None); ("Blue", None);
+            ("RGB", Some (TTuple [TConstr (([], "int"), None); TConstr (([], "int"), None); TConstr (([], "int"), None)]))])));
+    ("type 'a option =  | None | Some 'a",
+        (dummy, TypeDecl ("option", [0], TVariant [("None", None); ("Some", Some (TVar (0, ref None)))])));
+    ("type 'a tree =  | Node 'a | Leaf (('a tree) * ('a tree))",
+        (dummy, TypeDecl ("tree", [0], TVariant [("Node", Some (TVar (0, ref None)));
+            ("Leaf", Some (TTuple [TConstr (([], "tree"), Some (TVar (0, ref None)));
+                TConstr (([], "tree"), Some (TVar (0, ref None)))]))])));
+    ("type itree = (int tree)", (dummy, TypeDecl ("itree", [], TConstr (([], "tree"), Some (TConstr (([], "int"), None))))));
+    ("type lt = List.t", (dummy, TypeDecl ("lt", [], TConstr ((["List"], "t"), None))));
+(*
     ("type integer = int", (2, TypeDecl ("integer", [], TConstr (([], "int"), None))));
     ("type c = char and s = string",
         (3, TypeDeclAnd [(2, TypeDecl ("c", [], TConstr (([], "char"), None)));
@@ -248,6 +304,7 @@ let parser_all_tests = [
         (23, TypeDecl ("itree", [], TConstr (([], "tree"), Some (TConstr (([], "int"), None))))));
     ("type lt = List.t",
         (25, TypeDecl ("lt", [], TConstr ((["List"], "t"), None))));
+*)
 ]
 
 let parser_test verbose =

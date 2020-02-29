@@ -13,7 +13,9 @@ let get_line pars =
     let pos = Scanner.get_pos pars.scanner in
     pos.line
 
-let to_expr pars e = (get_line pars, e)
+let get_pos pars = Scanner.get_pos pars.scanner
+
+let to_expr pars e = (get_pos pars, e)
 
 let debug_scope_flag = ref false
 let debug_token_flag = ref false

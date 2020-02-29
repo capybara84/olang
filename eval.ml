@@ -1,8 +1,8 @@
 
 open Syntax
 
-let error n msg = raise (Error (string_of_int n ^ ": Runtime Error: " ^ msg))
-let warning n msg = print_endline @@ string_of_int n ^ ": Warning: " ^ msg
+let error p msg = raise (Error (get_position_string p ^ ": Runtime Error: " ^ msg))
+let warning p msg = print_endline @@ get_position_string p ^ ": Warning: " ^ msg
 
 let default_directory = "./"
 let default_extension = ".w"
@@ -146,22 +146,26 @@ let rec eval env (n, e) =
             | VBool false -> eval env else_e
             | _ -> error n "bool expected")
     | Comp el ->
-        let (_, v) = eval_list env el in
+        let (_, v) = eval_list false env el in
         v
-    | _ -> failwith ("eval bug :" ^ expr_to_string (0,e) )
+    | _ -> failwith ("eval bug :" ^ expr_to_string (n, e) )
 
-and eval_list env el =
+and eval_list is_toplevel env el =
     match el with
     | [] -> (env, VUnit)
     | x::xs ->
-        let (new_env, v) = eval_decl env x in
-        if xs == [] then
-            (new_env, v)
-        else if v <> VUnit then
-            (warning (fst x) "Type unit required";
-            eval_list new_env xs)
-        else
-            eval_list new_env xs
+        if is_toplevel && !g_output_source then begin
+            print_endline @@ "(\"" ^ expr_to_string x ^ "\", " ^ expr_to_string_src x ^ ");";
+            eval_list is_toplevel env xs
+        end else
+            let (new_env, v) = eval_decl env x in
+            if xs == [] then
+                (new_env, v)
+            else if v <> VUnit then
+                (warning (fst x) "Type unit required";
+                eval_list is_toplevel new_env xs)
+            else
+                eval_list is_toplevel new_env xs
 
 and eval_decl env x =
     if !g_verbose then print_endline @@ "eval_decl: " ^ expr_to_string_src x;
@@ -169,7 +173,7 @@ and eval_decl env x =
     | (_, Comp []) ->
         (env, VUnit)
     | (_, Comp el) ->
-        let (env, v) = eval_list env el in
+        let (env, v) = eval_list true env el in
         (env, v)
     | (_, Ident "#env") ->
         Symbol.show_all_modules ();
@@ -231,13 +235,9 @@ and load_source filename =
             | _ ->
                 if !g_verbose then
                     print_endline @@ expr_to_string e;
-                if !g_output_source then
-                    print_endline @@ "(\"" ^ expr_to_string e ^ "\", " ^ expr_to_string_src e ^ ");"
-                else begin
-                    let v = eval_top e in
-                    if v <> VUnit then
-                        print_endline "Warning: The expression should have type unit"
-                end;
+                let v = eval_top e in
+                if v <> VUnit then
+                    warning (fst e) "The expression should have type unit";
                 loop ()
         in loop ()
     with Error s | Sys_error s -> print_endline s
