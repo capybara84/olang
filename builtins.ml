@@ -56,10 +56,10 @@ let builtin_list =
         ("putc", TFun (Type.t_char, Type.t_unit), VBuiltin fn_putc);
         ("putf", TFun (Type.t_float, Type.t_unit), VBuiltin fn_putf);
         ("puts", TFun (Type.t_string, Type.t_unit), VBuiltin fn_puts);
-        ("hd", TFun (Type.new_list hd_type, hd_type), VBuiltin fn_head);
-        ("tl", TFun (Type.new_list tl_type, Type.new_list tl_type), VBuiltin fn_tail);
-        ("fst", TFun (Type.new_tuple [fst_type; fst'_type], fst_type), VBuiltin fn_first);
-        ("snd", TFun (Type.new_tuple [snd_type; snd'_type], snd'_type), VBuiltin fn_second);
+        ("hd", TFun (Type.t_list hd_type, hd_type), VBuiltin fn_head);
+        ("tl", TFun (Type.t_list tl_type, Type.t_list tl_type), VBuiltin fn_tail);
+        ("fst", TFun (Type.t_tuple [fst_type; fst'_type], fst_type), VBuiltin fn_first);
+        ("snd", TFun (Type.t_tuple [snd_type; snd'_type], snd'_type), VBuiltin fn_second);
     ]
 
 let builtin_type_list =
@@ -71,7 +71,8 @@ let builtin_type_list =
         ("float", Type.t_float);
         ("string", Type.t_string);
         ("ref", Type.t_ref);
-        ("list", Type.t_list);
+        ("list", Type.t_empty_list);
+
     ]
 
 let init () =

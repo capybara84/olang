@@ -48,6 +48,8 @@ let set_current_tenv tenv = !current_module.tenv <- tenv
 
 let lookup_default id =
     Env.lookup id default_module.env
+let lookup_default_type id =
+    Env.lookup id default_module.tenv
 
 let insert_default name ty value =
     default_module.env <- Env.extend name (ref value) default_module.env;
