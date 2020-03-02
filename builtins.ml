@@ -25,6 +25,10 @@ let fn_puts = function
     | VString s -> print_string s; VUnit
     | _ -> type_error "puts" "string"
 
+let fn_putv v =
+    print_string (value_to_string_src v);
+    VUnit
+
 let fn_head = function
     | VCons (hd, _) -> hd
     | _ -> type_error "hd" "list"
@@ -56,6 +60,7 @@ let builtin_list =
         ("putc", TFun (Type.t_char, Type.t_unit), VBuiltin fn_putc);
         ("putf", TFun (Type.t_float, Type.t_unit), VBuiltin fn_putf);
         ("puts", TFun (Type.t_string, Type.t_unit), VBuiltin fn_puts);
+        ("putv", TFun (TVar (0, ref None), Type.t_unit), VBuiltin fn_putv);
         ("hd", TFun (Type.t_list hd_type, hd_type), VBuiltin fn_head);
         ("tl", TFun (Type.t_list tl_type, Type.t_list tl_type), VBuiltin fn_tail);
         ("fst", TFun (Type.t_tuple [fst_type; fst'_type], fst_type), VBuiltin fn_first);

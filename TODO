@@ -9,6 +9,19 @@
 
 
 ---
+parser で未実装部分がまだあるのを
+見分けられない。TODOコメントを挟もう
+---
+今の実装では、import がeval 時にしか行われないので
+infer 時にunknown になりそう。
+eval じゃなくて infer の時にimport するか、
+import だけは別処理にするとか。
+import -> infer -> eval の順番とか。
+---
+C_ID のみのノードをつくるべきか。
+いまは、198行目で、Unitを返している。
+
+---
 typeはposを持っていないので、
 何行もあるrecordにエラー表示するときに先頭行になってしまう。
 type parseの構文木も用意すべきだったか。。

@@ -1,0 +1,11 @@
+import B
+
+fun show_flag f = {
+    if f == B.Green then
+        puts "GREEN"
+    else
+        puts "RED"
+    nl ()
+}
+
+show_flag B.Red

@@ -194,7 +194,8 @@ and parse_c_id_expr pars =
             | C_ID _ ->
                 (pos, IdentMod (cid, parse_c_id_expr pars))
             | _ -> error pars "missing identifier"
-        end else (get_pos pars, Unit)
+        end else
+            (get_pos pars, Unit)    (*TODO*)
     in
     (* assign / construct / record *)
     debug_parse_out "parse_c_id_expr";

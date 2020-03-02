@@ -1,0 +1,18 @@
+module B
+
+type flag = Green | Red
+
+module Main
+
+fun show_flag f = {
+    puts "show_flag:"
+    putv f
+    nl()
+    if f == B.Red then
+        puts "RED"
+    else
+        puts "GREEN"
+    nl ()
+}
+
+show_flag B.Green

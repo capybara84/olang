@@ -385,3 +385,21 @@ and tvar_list_to_string_src = function
     | x::[] -> string_of_int x
     | x::xs -> string_of_int x ^ "; " ^ tvar_list_to_string_src xs
 
+
+let rec value_to_string_src = function
+    | VUnit -> "VUnit"
+    | VNull -> "VNull"
+    | VBool b -> "VBool " ^ string_of_bool b
+    | VInt n -> "VInt " ^ string_of_int n
+    | VChar c -> "VChar '" ^ String.make 1 c ^ "'"
+    | VFloat f -> "VFloat " ^ string_of_float f
+    | VString s -> "VString \"" ^ s ^ "\""
+    | VTuple vl -> "VTuple [" ^ vlist_to_string_src vl ^ "]"
+    | VCons (x, xs) -> "VCons (" ^ value_to_string_src x ^ ", " ^ value_to_string_src xs ^ ")"
+    | VClosure (e1,e2,_) -> "<closure " ^ expr_to_string e1 ^ " = " ^ expr_to_string e2 ^ ">"
+    | VBuiltin _ -> "<builtin>"
+and vlist_to_string_src = function
+    | [] -> ""
+    | x::[] -> value_to_string_src x
+    | x::xs -> value_to_string_src x ^ "; " ^ vlist_to_string_src xs
+
