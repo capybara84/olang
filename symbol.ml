@@ -58,6 +58,9 @@ let insert_default name ty value =
 let insert_default_type name ty =
     default_module.tenv <- Env.extend name (ref ty) default_module.tenv
 
+let insert_type id ty =
+    !current_module.tenv <- Env.extend id (ref ty) !current_module.tenv
+
 let show_tab tab =
     print_endline "env";
     List.iter (fun (name, value) ->

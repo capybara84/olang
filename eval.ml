@@ -213,6 +213,7 @@ and eval_decl env x =
 and type_decl env e =
     match e with
     | (n, TypeDecl (id, tvl, t)) ->
+        Symbol.insert_type id t;
         (env, VUnit)    (* TODO *)
     | _ -> failwith "type decl bug"
 
