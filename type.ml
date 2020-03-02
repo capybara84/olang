@@ -1,6 +1,10 @@
 open Syntax
 
-let error p msg = raise (Error (get_position_string p ^ ": Runtime Error: " ^ msg))
+let error p msg = raise (Error (get_position_string p ^ ": Type Error: " ^ msg))
+
+let verbose msg =
+    if !g_verbose then
+        print_endline ("TYPE> " ^ msg)
 
 let seed = ref 0
 
@@ -73,9 +77,21 @@ and occurs_in_type t t2 =
         | TFun (tf1, tf2) -> occurs_in t [tf1;tf2]
         | _ -> false
 
+let rec prune = function
+    | TVar (_, ({contents = Some t} as instance)) ->
+        let inst = prune t in
+        instance := Some inst;
+        inst
+    | t -> t
+
 let rec unify p t1 t2 =
+    let t1 = prune t1 in
+    let t2 = prune t2 in
+    verbose @@ "unify " ^ type_to_string_src t1 ^ ", " ^ type_to_string_src t2;
     match (t1, t2) with
     | (TConstr (tn1, None), TConstr (tn2, None)) when type_name_equal tn1 tn2 -> ()
+    | (TConstr (tn1, Some tl), TConstr (tn2, Some tr)) when type_name_equal tn1 tn2 ->
+        unify p tl tr
     | (TTuple tl1, TTuple tl2) ->
         (try
             List.iter2 (fun a b -> unify p a b) tl1 tl2
@@ -156,7 +172,7 @@ let rec infer_list p tenv = function
         end
 
 and infer tenv x =
-    if !g_verbose then print_endline @@ "infer: " ^ expr_to_string_src x;
+    verbose @@ "infer  IN: " ^ expr_to_string x;
     let (tenv, ty) =
         match x with
         | (_, Eof) | (_, Unit) -> (tenv, t_unit)
@@ -212,6 +228,7 @@ and infer tenv x =
             (tenv, TFun (t_unit, t_body))
         | (_, Fn _) -> failwith "type bug"
         | (p, Apply (fn, arg)) ->
+            verbose "Apply";
             let (_, t_fn) = infer tenv fn in
             let (_, t_arg) = infer tenv arg in
             let t = new_tvar () in
@@ -240,24 +257,36 @@ and infer tenv x =
             let (_, t) = infer tenv e in
             r := t;
             (tenv, t_unit)
-        | (_, TypeDecl (id, il, t)) ->
-            (*TODO*)
-            (tenv, t_unit)
+        | (_, TypeDecl _) ->
+            type_decl tenv x
         | (_, TypeDeclAnd el) ->
-            (*TODO*)
+            (*TODO tenv *)
+            List.iter (fun x -> ignore @@ type_decl tenv x) el;
             (tenv, t_unit)
         | (_, Module id) ->
             let tab = Symbol.set_module id in
             (tab.tenv, t_unit)
-        | (_, Import _) ->
-            (*TODO*)
+        | (_, Import (id, None)) ->
+            Interp.import Eval.eval_top infer_top id;
+            (tenv, t_unit)
+        | (_, Import (id, Some aid)) ->
+            Interp.import Eval.eval_top infer_top id;
+            Symbol.rename_module id aid;
             (tenv, t_unit)
     in
-    if !g_verbose then print_endline @@ "infer: " ^ expr_to_string x ^ " = " ^ type_to_string ty;
+    verbose @@ "infer: OUT: " ^ expr_to_string x ^ " => " ^ type_to_string ty;
     (tenv, ty)
 
-let infer_top e =
+and type_decl tenv e =
+    match e with
+    | (p, TypeDecl (id, tvl, t)) ->
+        Symbol.insert_type id t;
+        (tenv, t_unit)
+    | _ -> failwith "type decl bug"
+
+and infer_top e =
     let tab = Symbol.get_current_module () in
     let (tenv, t) = infer tab.tenv e in
     Symbol.set_current_tenv tenv;
     t
+

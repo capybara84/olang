@@ -4,12 +4,6 @@ open Syntax
 let error p msg = raise (Error (get_position_string p ^ ": Runtime Error: " ^ msg))
 let warning p msg = print_endline @@ get_position_string p ^ ": Warning: " ^ msg
 
-let default_directory = "./"
-let default_extension = ".wt"
-
-let make_module_filename name =
-    default_directory ^ String.uncapitalize name ^ default_extension
-
 
 (*TODO Think if type errors really happen *)
 let eval_unary n = function
@@ -189,42 +183,16 @@ and eval_decl env x =
         r := eval new_env e;
         (new_env, VUnit)
     | (_, TypeDecl _) ->
-        type_decl env x
+        (env, VUnit)
     | (_, TypeDeclAnd el) ->
-        List.iter (fun x -> ignore @@ type_decl env x) el;
         (env, VUnit)
     | (_, Module id) ->
         let tab = Symbol.set_module id in
         (tab.env, VUnit)
-    | (_, Import (id, None)) ->
-        import id;
-        (env, VUnit)
-    | (_, Import (id, Some aid)) ->
-        import id;
-        Symbol.rename_module id aid;
+    | (_, Import _) ->
         (env, VUnit)
     | e ->
         (env, eval env e)
-
-and type_decl env e =
-    match e with
-    | (n, TypeDecl (id, tvl, t)) ->
-        Symbol.insert_type id t;
-        (env, VUnit)
-    | _ -> failwith "type decl bug"
-
-and import id =
-    if Symbol.exist_module id then
-        ()
-    else begin
-        let filename = make_module_filename id in
-        let prev = Symbol.get_current_module () in
-        ignore (Symbol.set_module id);
-        (try
-            Interp.load_source eval_top filename
-        with Error s | Sys_error s -> print_endline s);
-        Symbol.set_current_module prev
-    end
 
 and eval_top e =
     let tab = Symbol.get_current_module () in

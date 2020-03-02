@@ -344,10 +344,12 @@ let eval_all_tests = [
     ("module Main", VUnit);
     ("A.x", VInt 1);
     ("B.x", VInt 2);
+(*
     ("import List", VUnit);
     ("List.length [1,2,3]", VInt 3);
     ("import List as L", VUnit);
     ("L.length [1,2,3,4]", VInt 4);
+*)
 (*
     ("(fn n -> match n { 0 -> 'a' | 1 -> 'b' | 2 -> 'c' }) 1", VChar 'b');
     ("(fn n -> match n { (_,_,x) -> x }) (1,2,3)", VInt 3);

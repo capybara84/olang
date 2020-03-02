@@ -46,12 +46,12 @@ let fn_second = function
     | _ -> type_error "snd" "tuple"
 
 let builtin_list =
-    let hd_type = TVar (0, ref None) in
-    let tl_type = TVar (0, ref None) in
-    let fst_type = TVar (0, ref None) in
-    let fst'_type = TVar (1, ref None) in
-    let snd_type = TVar (0, ref None) in
-    let snd'_type = TVar (1, ref None) in
+    let hd_type = Type.new_tvar () in
+    let tl_type = Type.new_tvar () in
+    let fst_type = Type.new_tvar () in
+    let fst'_type = Type.new_tvar () in
+    let snd_type = Type.new_tvar () in
+    let snd'_type = Type.new_tvar () in
     [
         ("true", Type.t_bool, VBool true);
         ("false", Type.t_bool, VBool false);
@@ -60,7 +60,7 @@ let builtin_list =
         ("putc", TFun (Type.t_char, Type.t_unit), VBuiltin fn_putc);
         ("putf", TFun (Type.t_float, Type.t_unit), VBuiltin fn_putf);
         ("puts", TFun (Type.t_string, Type.t_unit), VBuiltin fn_puts);
-        ("putv", TFun (TVar (0, ref None), Type.t_unit), VBuiltin fn_putv);
+        ("putv", TFun (Type.new_tvar (), Type.t_unit), VBuiltin fn_putv);
         ("hd", TFun (Type.t_list hd_type, hd_type), VBuiltin fn_head);
         ("tl", TFun (Type.t_list tl_type, Type.t_list tl_type), VBuiltin fn_tail);
         ("fst", TFun (Type.t_tuple [fst_type; fst'_type], fst_type), VBuiltin fn_first);

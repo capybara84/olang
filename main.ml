@@ -16,9 +16,9 @@ let main () =
         "usage: wktk [-v][-t] filename...";
     Symbol.set_default_module ();
     Builtins.init ();
-    List.iter (Interp.load_source Eval.eval_top) (List.rev !filenames);
+    List.iter (Interp.load_source Eval.eval_top Type.infer_top) (List.rev !filenames);
     if !do_test then
         Test.test ()
     else if List.length !filenames = 0 then
-        Interp.top_level Eval.eval_top
+        Interp.top_level Eval.eval_top Type.infer_top
 

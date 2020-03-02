@@ -8,11 +8,14 @@
 * compiler
 
 ---
-今の実装では、import がeval 時にしか行われないので
-infer 時にunknown になりそう。
-eval じゃなくて infer の時にimport するか、
-import だけは別処理にするとか。
-import -> infer -> eval の順番とか。
+Type Constructor を実装(eval)していないので実装しよう
+
+---
+type infer が適当なので、
+putv : 'a -> unit
+が使うと、int -> unitとかにunifyされてしまう。
+とりあえず、使う時にcopyすればいいかも。。
+
 ---
 C_ID のみのノードをつくるべきか。
 いまは、198行目で、Unitを返している。
