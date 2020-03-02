@@ -10,12 +10,6 @@ let default_extension = ".wt"
 let make_module_filename name =
     default_directory ^ String.uncapitalize name ^ default_extension
 
-let load_file filename =
-    let ic = open_in filename in
-    let n = in_channel_length ic in
-    let text = really_input_string ic n in
-    close_in ic;
-    text
 
 (*TODO Think if type errors really happen *)
 let eval_unary n = function
@@ -227,33 +221,14 @@ and import id =
         let prev = Symbol.get_current_module () in
         ignore (Symbol.set_module id);
         (try
-            load_source filename
+            Interp.load_source eval_top filename
         with Error s | Sys_error s -> print_endline s);
         Symbol.set_current_module prev
     end
-
-and load_source filename =
-    try
-        let text = load_file filename in
-        let scan = Scanner.from_string filename text in
-        let rec loop () =
-            let e = Parser.parse scan in
-            match e with
-            | (_, Eof) -> ()
-            | _ ->
-                if !g_verbose then
-                    print_endline @@ expr_to_string e;
-                let v = eval_top e in
-                if v <> VUnit then
-                    warning (fst e) "The expression should have type unit";
-                loop ()
-        in loop ()
-    with Error s | Sys_error s -> print_endline s
 
 and eval_top e =
     let tab = Symbol.get_current_module () in
     let (env, v) = eval_decl tab.env e in
     Symbol.set_current_env env;
     v
-
 
