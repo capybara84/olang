@@ -17,6 +17,7 @@ let load_file filename =
     close_in ic;
     text
 
+(*TODO Think if type errors really happen *)
 let eval_unary n = function
     | (UMinus, VInt i) -> VInt (-i)
     | (UMinus, VFloat f) -> VFloat (-.f)
@@ -103,13 +104,14 @@ let rec eval env (n, e) =
                     with Not_found -> error n ("'" ^ id ^ "' not found")))
             in
             v
+        (*TODO Capitalized ID *)
         | IdentMod (id, e) ->
             (try
                 let tab = Symbol.lookup_module id in
                 eval tab.env e
             with Not_found -> error n ("'" ^ id ^ "' not found"))
         | Record (e, id) ->
-            VUnit (*TODO*)
+            VUnit (*TODO implement *)
         | Tuple el ->
             VTuple (List.map (eval env) el)
         | Binary (BinLor, lhs, rhs) ->
@@ -214,7 +216,7 @@ and type_decl env e =
     match e with
     | (n, TypeDecl (id, tvl, t)) ->
         Symbol.insert_type id t;
-        (env, VUnit)    (* TODO *)
+        (env, VUnit)
     | _ -> failwith "type decl bug"
 
 and import id =

@@ -18,7 +18,7 @@ type token
     | MODULE | IMPORT | AS | DECL | TYPE | AND | LET | REC | FUN | FN | IF | THEN
     | ELSE | MATCH | WHEN | MUTABLE | WILDCARD | PLUS | STAR | PERCENT | COMMA
     | SEMI | DOT | RANGE | MINUS | RARROW | EQ | EQL | NOT | NEQ | LT | LE
-    | LARROW | GT | GE | COLON | DCOLON | ASSIGN | OR | LOR | AMP | LAND | LSBRA | RSBRA
+    | LARROW | GT | GE | COLON | ASSIGN | OR | LOR | AMP | LAND | LSBRA | RSBRA
     | NULL | LPAR | RPAR | UNIT | LBRACE | RBRACE | SLASH
 
 type token_t = {
@@ -108,7 +108,7 @@ let token_to_string = function
     | STAR -> "*" | PERCENT -> "%" | COMMA -> "," | SEMI -> ";" | DOT -> "."
     | RANGE -> ".." | MINUS -> "-" | RARROW -> "->" | EQ -> "=" | EQL -> "=="
     | NOT -> "!" | NEQ -> "!=" | LT -> "<" | LE -> "<=" | LARROW -> "<-"
-    | GT -> ">" | GE -> ">=" | COLON -> ":" | DCOLON -> "::" | ASSIGN -> ":="
+    | GT -> ">" | GE -> ">=" | COLON -> ":" | ASSIGN -> ":="
     | OR -> "|" | LOR -> "||" | AMP -> "&" | LAND -> "&&" | LSBRA -> "[" | RSBRA -> "]"
     | NULL -> "[]" | LPAR -> "(" | RPAR -> ")" | UNIT -> "()" | LBRACE -> "{"
     | RBRACE -> "}" | SLASH -> "/"
@@ -118,6 +118,8 @@ let rec tname_to_string (idl, id) =
     | [] -> id
     | x::xs -> x ^ "." ^ tname_to_string (xs, id)
 
+(*TODO Parentheses according to expression precedence *)
+(*TODO tvar reset to 0 *)
 let rec type_to_string = function
     | TConstr (name, Some t) -> "(" ^ type_to_string t ^ " " ^ tname_to_string name ^ ")"
     | TConstr (name, None) -> tname_to_string name
@@ -155,6 +157,7 @@ let string_of_unop = function
     | UNot -> "!"
     | UMinus -> "-"
 
+(* TODO Parentheses according to expression precedence *)
 let rec expr_to_string = function
     | (_, Eof) -> "<EOF>" | (_, Unit) -> "()" | (_, Null) -> "[]" | (_, WildCard) -> "_"
     | (_, BoolLit b) -> string_of_bool b | (_, IntLit n) -> string_of_int n

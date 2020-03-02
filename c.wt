@@ -9,3 +9,6 @@ fun show_flag f = {
 }
 
 show_flag B.Red
+putv B.x
+nl()
+putv B.i

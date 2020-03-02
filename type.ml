@@ -65,6 +65,7 @@ let rec occurs_in t tl =
     List.exists (fun t2 -> occurs_in_type t t2) tl
 
 and occurs_in_type t t2 =
+    (*TODO prune ? *)
     if type_var_equal t t2 then true
     else
         match t2 with
@@ -78,7 +79,7 @@ let rec unify p t1 t2 =
     | (TTuple tl1, TTuple tl2) ->
         (try
             List.iter2 (fun a b -> unify p a b) tl1 tl2
-        with Invalid_argument _ -> error p (type_to_string t1 ^ " != " ^ type_to_string t2))
+        with Invalid_argument _ -> error p @@ "type mismatch " ^ type_to_string t1 ^ " and " ^ type_to_string t2)
     | (TFun (t11, t12), TFun (t21, t22)) ->
         unify p t11 t21;
         unify p t12 t22
@@ -88,15 +89,15 @@ let rec unify p t1 t2 =
 
     | (TVar (_, ({contents = None} as r1)), _) ->
         if occurs_in_type t1 t2 then
-            error p "circularity"
+            error p @@ "type circularity between " ^ type_to_string t1 ^ " and " ^ type_to_string t2
         else
             r1 := Some t2
     | (_, TVar (_, ({contents = None} as r2))) ->
         if occurs_in_type t2 t1 then
-            error p "circularity"
+            error p @@ "type circularity between " ^ type_to_string t2 ^ " and " ^ type_to_string t1
         else
             r2 := Some t1
-    | (_, _) -> error p @@ "type mismatch (" ^ type_to_string t1 ^ " & " ^ type_to_string t2 ^ ")"
+    | (_, _) -> error p @@ "type mismatch " ^ type_to_string t1 ^ " & " ^ type_to_string t2
 
 
 let infer_binary p op tl tr =
@@ -106,19 +107,21 @@ let infer_binary p op tl tr =
         if equal tl t_int || equal tl t_string || equal tl t_float then
             tl
         else
-            error p "int, float, or string required for '+' operator"
+            error p @@ "int, float, or string required for '+' operator (" ^ type_to_string tl ^ ")"
     | BinSub | BinMul | BinDiv | BinMod ->
         unify p tl tr;
         if equal tl t_int || equal tl t_float then
             tl
         else
-            error p @@ "int or float required for '" ^ string_of_binop op ^ "' operator"
+            error p @@ "int or float required for '" ^ string_of_binop op ^ "' operator ("
+                ^ type_to_string tl ^ ")"
     | BinLT | BinLE | BinGT | BinGE ->
         unify p tl tr;
         if equal tl t_char || equal tl t_int || equal tl t_string || equal tl t_float then
             t_bool
         else
-            error p "int, float, char or string required for relational operator"
+            error p @@ "int, float, char or string required for relational operator ("
+                ^ type_to_string tl ^ ")"
     | BinEql | BinNeq ->
         unify p tl tr;
         t_bool
@@ -140,7 +143,7 @@ let infer_unary p op t =
         t_bool
     | _ -> error p @@ "unary operator " ^ string_of_unop op ^ " type error (" ^ type_to_string t ^ ")"
 
-(* TODO Difference aboutGlobal Comp and Local Comp *)
+(* TODO Difference about Global Comp and Local Comp *)
 let rec infer_list p tenv = function
     | [] -> (tenv, t_unit)
     | x::xs ->
@@ -176,6 +179,7 @@ and infer tenv x =
                     with Not_found -> error p ("'" ^ id ^ "' not found")))
             in
             (tenv, t)
+        (*TODO Capitalized ID *)
         | (p, IdentMod (id, e)) ->
             (try
                 let tab = Symbol.lookup_module id in
@@ -218,13 +222,13 @@ and infer tenv x =
             unify p t_bool t_cond;
             let (_, t_then) = infer tenv then_e in
             let (_, t_else) = infer tenv else_e in
-            (*TODO*)
+            (*TODO skip unit else *)
             unify p t_then t_else;
             (tenv, t_then)
         | (p, Comp el) ->
             infer_list p tenv el
         | (_, Match _) ->
-            (*TODO*)
+            (*TODO implement match*)
             (tenv, t_unit)
         | (_, Let (id, e)) ->
             let (_, t) = infer tenv e in
@@ -246,7 +250,8 @@ and infer tenv x =
             let tab = Symbol.set_module id in
             (tab.tenv, t_unit)
         | (_, Import _) ->
-            (tenv, t_unit)  (*TODO*)
+            (*TODO*)
+            (tenv, t_unit)
     in
     if !g_verbose then print_endline @@ "infer: " ^ expr_to_string x ^ " = " ^ type_to_string ty;
     (tenv, ty)

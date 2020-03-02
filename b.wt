@@ -1,1 +1,3 @@
 type flag = Green | Red
+let x = 1
+type i = int

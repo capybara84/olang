@@ -50,7 +50,7 @@ let scanner_test_text = "
 /* 13 */ else match when mutable
 /* 14 */ _ + * % , ; . ..
 /* 15 */ - -> = == ! != < <= <- > >=
-/* 16 */ : :: := | || & && [ ] []
+/* 16 */ : := | || & && [ ] []
 /* 17 */ ( ) () { } /
 /* 18 */"
 
@@ -66,8 +66,8 @@ let scanner_test_tokens = [
     (20,14, SEMI); (22,14, DOT); (24,14, RANGE); (1,15, NEWLINE);
     (10,15, MINUS); (12,15, RARROW); (15,15, EQ); (17,15, EQL); (20,15, NOT); (22,15, NEQ);
     (25,15, LT); (27,15, LE); (30,15, LARROW); (33,15, GT); (35,15, GE); (1,16, NEWLINE);
-    (10,16, COLON); (12,16, DCOLON); (15,16, ASSIGN); (18,16, OR); (20,16, LOR); (23,16, AMP);
-    (25,16, LAND); (28,16, LSBRA); (30,16, RSBRA); (32,16, NULL); (1,17, NEWLINE);
+    (10,16, COLON); (12,16, ASSIGN); (15,16, OR); (17,16, LOR); (20,16, AMP);
+    (22,16, LAND); (25,16, LSBRA); (27,16, RSBRA); (29,16, NULL); (1,17, NEWLINE);
     (10,17, LPAR); (12,17, RPAR); (14,17, UNIT); (17,17, LBRACE); (19,17, RBRACE);
     (21,17, SLASH); (1,18, NEWLINE); (9,18, EOF);
 ]
@@ -224,13 +224,13 @@ let parser_all_tests = [
         (dummy, TypeDecl ("pair", [0], TTuple [TVar (0, ref None); TVar (0, ref None)])));
     ("type  ('a, 'b) pair = ('a * 'b)",
         (dummy, TypeDecl ("pair", [0; 1], TTuple [TVar (0, ref None); TVar (1, ref None)])));
-    ("type point2d = { mutable x :: int; mutable y :: int; }",
+    ("type point2d = { mutable x : int; mutable y : int; }",
         (dummy, TypeDecl ("point2d", [], TRecord [("x", TConstr (([], "int"), None), Mutable);
             ("y", TConstr (([], "int"), None), Mutable)])));
-    ("type 'a point2d = { x :: 'a; y :: 'a; }",
+    ("type 'a point2d = { x : 'a; y : 'a; }",
         (dummy, TypeDecl ("point2d", [0], TRecord [("x", TVar (0, ref None), Immutable);
             ("y", TVar (0, ref None), Immutable)])));
-    ("type  ('a, 'b, 'c) atob = { a :: 'a; b :: 'b; c :: 'c; }",
+    ("type  ('a, 'b, 'c) atob = { a : 'a; b : 'b; c : 'c; }",
         (dummy, TypeDecl ("atob", [0; 1; 2], TRecord [("a", TVar (0, ref None), Immutable);
             ("b", TVar (1, ref None), Immutable); ("c", TVar (2, ref None), Immutable)])));
     ("type color =  | Red | Green | Blue",

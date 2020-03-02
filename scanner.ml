@@ -57,6 +57,7 @@ let cut_token pred scan =
     Buffer.contents buffer
 
 let scan_number scan =
+    (*TODO scan float number *)
     let is_digit = function '0'..'9' -> true | _ -> false in
     INT_LIT (int_of_string (cut_token is_digit scan)) 
 
@@ -80,6 +81,8 @@ let get_char scan =
     | Some '\\' ->
         begin
             next_char scan;
+            (*TODO parse \000 style code *)
+            (*TODO skip \ at end of line *)
             match peek scan with
             | Some 'n' -> '\n'
             | Some 'r' -> '\r'
@@ -199,18 +202,7 @@ let rec scan_token scan =
     | Some '(' -> scan_token2 ')' UNIT LPAR
     | Some '{' -> next_char scan; LBRACE
     | Some '}' -> next_char scan; RBRACE
-    | Some ':' ->
-        begin
-            next_char scan;
-            match peek scan with
-            | Some ':' ->
-                next_char scan;
-                DCOLON
-            | Some '=' ->
-                next_char scan;
-                ASSIGN
-            | _ -> COLON
-        end
+    | Some ':' -> scan_token2 '=' ASSIGN COLON
     | Some '<' ->
         begin
             next_char scan;

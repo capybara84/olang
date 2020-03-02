@@ -197,7 +197,7 @@ and parse_c_id_expr pars =
         end else
             (get_pos pars, Unit)    (*TODO*)
     in
-    (* assign / construct / record *)
+    (* TODO assign / construct / record *)
     debug_parse_out "parse_c_id_expr";
     e
 
@@ -218,7 +218,7 @@ and parse_id_expr pars =
         end else lhs
     in
     let e = parse_rhs lhs in
-    (* assign *)
+    (*TODO assign *)
     debug_parse_out "parse_id_expr";
     e
 
@@ -488,6 +488,7 @@ and parse_let pars =
         end else
             false
     in
+    (*TODO id_pat *)
     let id = 
         match peek_token pars with
         | ID id -> next_token pars; id
@@ -495,6 +496,7 @@ and parse_let pars =
         | WILDCARD -> next_token pars; "_"
         | t -> error pars ("missing identifier at '" ^ token_to_string t ^ "'")
     in
+    (*TODO [':' type] *)
     expect pars EQ;
     skip_newline pars;
     let e = parse_expr pars in
@@ -511,7 +513,7 @@ and parse_let pars =
 (*
 fun_expr
     = FUN ID [':' type] ('=' | '|') params '->' expr {'|' params '->' expr}
-    | FUN ID [':' type} a_params '=' expr
+    | FUN ID [':' type] a_params '=' expr
 *)
 and parse_fun pars =
     debug_parse_in "parse_fun";
@@ -520,9 +522,11 @@ and parse_fun pars =
     skip_newline pars;
     let id = expect_id pars in
     skip_newline pars;
+    (*TODO Implement ':' type *)
     let args = parse_params pars in
-    expect pars EQ;
+    expect pars EQ; (*TODO EQ or OR *)
     skip_newline pars;
+    (*TODO Implement | matching *)
     let e = List.fold_right (fun arg body -> (pos, Fn (arg, body))) args (parse_expr pars)
     in
     let e = (pos, LetRec (id, e)) in
@@ -562,6 +566,7 @@ and parse_params pars =
             (next_token pars; [(pos, Unit)])
         else
             parse_param_list pars []
+        (*TODO implement WHEN *)
     in
     debug_parse_out "parse_params pars";
     e
@@ -578,6 +583,7 @@ and parse_fn pars =
     let args = parse_params pars in
     expect pars RARROW;
     skip_newline pars;
+    (*TODO implement | matching *)
     let e = List.fold_right (fun arg body -> (pos, Fn (arg, body))) args (parse_expr pars) in
     debug_parse_out "parse_fn";
     e
@@ -611,8 +617,9 @@ match_expr
     = MATCH expr '{' match_list '}'
 *)
 and parse_match pars =
+    (*TODO Implement *)
     next_token pars;
-    (get_pos pars, Unit)    (*TODO*)
+    (get_pos pars, Unit)
 
 (*
 expr_list
@@ -851,7 +858,7 @@ let parse_variant_decl pars cid_opt =
 
 (*
 field_decl
-    = [MUTABLE] ID '::' type
+    = [MUTABLE] ID ':' type
 *)
 let parse_field_decl pars =
     debug_parse_in "parse_field_decl";
@@ -865,7 +872,7 @@ let parse_field_decl pars =
     in
     let id = expect_id pars in
     skip_newline pars;
-    expect pars DCOLON;
+    expect pars COLON;
     skip_newline pars;
     let t = parse_type pars None in
     let res = (id, t, mut_flag) in

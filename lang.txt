@@ -61,7 +61,7 @@ type_params
 record_decl
     = '{' field_decl {';' field_decl} [';'] '}'
 field_decl
-    = [MUTABLE] ID '::' type
+    = [MUTABLE] ID ':' type
 variant_decl
     = ['|'] variant_elem {'|' variant_elem }
 variant_elem

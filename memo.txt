@@ -160,6 +160,9 @@ int ref
 let a = & 1
 
 --
+array
+
+--
 type
 
 type integer = int
