@@ -59,7 +59,7 @@ let insert_default_type name ty =
     default_module.tenv <- Env.extend name (ref ty) default_module.tenv
 
 let insert_type id ty =
-    let id_ty = Type.t_id id ty in
+    let id_ty = TId (id, ty) in
     !current_module.tenv <- Env.extend id (ref id_ty) !current_module.tenv;
     let rec insert_variant n = function
         | [] -> ()

@@ -116,6 +116,7 @@ let rec unify p t1 t2 =
             error p @@ "type circularity between " ^ type_to_string t2 ^ " and " ^ type_to_string t1
         else
             r2 := Some t1
+    | (TId (id1, _), TId (id2, _)) when id1 = id2 -> ()
     | (_, _) -> error p @@ "type mismatch " ^ type_to_string t1 ^ " & " ^ type_to_string t2
 
 
