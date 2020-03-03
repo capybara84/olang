@@ -59,7 +59,33 @@ let insert_default_type name ty =
     default_module.tenv <- Env.extend name (ref ty) default_module.tenv
 
 let insert_type id ty =
-    !current_module.tenv <- Env.extend id (ref ty) !current_module.tenv
+    let id_ty = Type.t_id id ty in
+    !current_module.tenv <- Env.extend id (ref id_ty) !current_module.tenv;
+    let rec insert_variant n = function
+        | [] -> ()
+        | x::xs -> insert_variant_elem n x; insert_variant (n+1) xs
+    and insert_variant_elem n = function
+        | (id, _) ->
+            !current_module.tenv <- Env.extend id (ref id_ty) !current_module.tenv 
+    in
+    match ty with
+    | TVariant vl ->
+        insert_variant 0 vl 
+    | _ -> ()
+
+
+let rec insert_type_if_variant _ t =
+    let rec insert_variant n = function
+        | [] -> ()
+        | x::xs -> insert_variant_elem n x; insert_variant (n+1) xs
+    and insert_variant_elem n = function
+        | (id, _) ->
+            !current_module.env <- Env.extend id (ref (VInt n)) !current_module.env 
+    in
+    match t with
+    | TVariant vl ->
+        insert_variant 0 vl 
+    | _ -> ()
 
 let show_tab tab =
     print_endline "env";

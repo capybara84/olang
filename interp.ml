@@ -33,7 +33,7 @@ let load_source eval_fn infer_fn filename =
                     print_endline @@ expr_to_string e ^ " : " ^ type_to_string t;
                 let v = eval_fn e in
                 if !g_verbose then
-                    print_endline @@ value_to_string v;
+                    print_endline @@ value_to_string v ^ " : " ^ type_to_string t;
                 loop ()
         in loop ()
     with Error s | Sys_error s -> print_endline s

@@ -183,9 +183,9 @@ c_id_expr
 and parse_c_id_expr pars =
     debug_parse_in "parse_c_id_expr";
     let cid = expect_c_id pars in
+    let pos = get_pos pars in
     let e =
         if peek_token pars = DOT then begin
-            let pos = get_pos pars in
             next_token pars;
             skip_newline pars;
             match peek_token pars with
@@ -195,7 +195,7 @@ and parse_c_id_expr pars =
                 (pos, IdentMod (cid, parse_c_id_expr pars))
             | _ -> error pars "missing identifier"
         end else
-            (get_pos pars, Unit)    (*TODO*)
+            (pos, CIdent cid)
     in
     (* TODO assign / construct / record *)
     debug_parse_out "parse_c_id_expr";

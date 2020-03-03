@@ -2,6 +2,7 @@
 exception Error of string
 
 let g_verbose = ref false
+let g_verbose_type = ref false
 let g_output_source = ref false
 
 type ident = string
@@ -29,6 +30,7 @@ type token_t = {
 type type_name = ident list * ident
 
 type typ =
+    | TId of ident * typ
     | TConstr of type_name * typ option
     | TTuple of typ list
     | TFun of typ * typ
@@ -51,7 +53,7 @@ type pattern =
 type exp =
     | Eof | Unit | Null | WildCard
     | BoolLit of bool | IntLit of int | CharLit of char | FloatLit of float
-    | StringLit of string | Ident of ident | IdentMod of ident * expr
+    | StringLit of string | Ident of ident | CIdent of ident | IdentMod of ident * expr
     | Record of expr * ident
     | Tuple of expr list
     | Binary of binop * expr * expr
@@ -121,6 +123,7 @@ let rec tname_to_string (idl, id) =
 (*TODO Parentheses according to expression precedence *)
 (*TODO tvar reset to 0 *)
 let rec type_to_string = function
+    | TId (id, _) -> id
     | TConstr (name, Some t) -> "(" ^ type_to_string t ^ " " ^ tname_to_string name ^ ")"
     | TConstr (name, None) -> tname_to_string name
     | TTuple tl -> "(" ^ tuple_to_string tl ^ ")"
@@ -162,7 +165,7 @@ let rec expr_to_string = function
     | (_, Eof) -> "<EOF>" | (_, Unit) -> "()" | (_, Null) -> "[]" | (_, WildCard) -> "_"
     | (_, BoolLit b) -> string_of_bool b | (_, IntLit n) -> string_of_int n
     | (_, CharLit c) -> "'" ^ String.make 1 c ^ "'" | (_, FloatLit f) -> string_of_float f
-    | (_, StringLit s) -> "\"" ^ s ^ "\"" | (_, Ident id) -> id
+    | (_, StringLit s) -> "\"" ^ s ^ "\"" | (_, Ident id) -> id | (_, CIdent id) -> id
     | (_, IdentMod (id, e)) -> id ^ "." ^ expr_to_string e
     | (_, Record (e, id)) -> expr_to_string e ^ "." ^ id
     | (_, Tuple el) -> "(" ^ tuple_to_string el ^ ")"
@@ -274,6 +277,7 @@ let rec tname_to_string_src (idl, id) =
     "([" ^ id_list_to_string idl ^ "], \"" ^ id ^ "\")"
 
 let rec type_to_string_src = function
+    | TId (id, t) -> "TId (" ^ id ^ ", " ^ type_to_string_src t ^ ")"
     | TConstr (name, Some t) ->
         "TConstr (" ^ tname_to_string_src name ^ ", Some (" ^ type_to_string_src t ^ "))"
     | TConstr (name, None) -> "TConstr (" ^ tname_to_string_src name ^ ", None)"
@@ -325,6 +329,7 @@ let rec expr_to_string_src = function
     | (n, FloatLit f) -> "(" ^ string_of_pos n ^ ", FloatLit " ^ string_of_float f ^ ")"
     | (n, StringLit s) -> "(" ^ string_of_pos n ^ ", StringLit \"" ^ s ^ "\")"
     | (n, Ident id) -> "(" ^ string_of_pos n ^ ", Ident \"" ^ id ^ "\")"
+    | (n, CIdent id) -> "(" ^ string_of_pos n ^ ", CIdent \"" ^ id ^ "\")"
     | (n, IdentMod (id, e)) ->
         "(" ^ string_of_pos n ^ ", IdentMod (\"" ^ id ^ "\", " ^ expr_to_string_src e ^ ")"
     | (n, Record (e, id)) -> "(" ^ string_of_pos n ^ ", Record (" ^ expr_to_string_src e ^ ", \"" ^ id ^ "\"))"

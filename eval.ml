@@ -71,7 +71,9 @@ let eval_binary n = function
     | _ -> error n "type error (binary expression)"
 
 let rec eval env (n, e) =
+(*
     if !g_verbose then print_endline @@ "eval: " ^ expr_to_string (n, e);
+*)
     let res =
         match e with
         | Eof | Unit -> VUnit
@@ -82,7 +84,7 @@ let rec eval env (n, e) =
         | CharLit c -> VChar c
         | FloatLit f -> VFloat f
         | StringLit s -> VString s
-        | Ident id ->
+        | Ident id | CIdent id -> 
             let v =
                 (try
                     !(Env.lookup id env)
@@ -92,7 +94,6 @@ let rec eval env (n, e) =
                     with Not_found -> error n ("'" ^ id ^ "' not found")))
             in
             v
-        (*TODO Capitalized ID *)
         | IdentMod (id, e) ->
             (try
                 let tab = Symbol.lookup_module id in
@@ -141,7 +142,9 @@ let rec eval env (n, e) =
             v
         | _ -> failwith ("eval bug :" ^ expr_to_string (n, e) )
     in
+(*
     if !g_verbose then print_endline @@ "eval: " ^ expr_to_string (n, e) ^ " = " ^ value_to_string res;
+*)
     res
 
 
@@ -163,7 +166,9 @@ and eval_list is_toplevel env el =
                 eval_list is_toplevel new_env xs
 
 and eval_decl env x =
+(*
     if !g_verbose then print_endline @@ "eval_decl: " ^ expr_to_string_src x;
+*)
     match x with
     | (_, Comp []) ->
         (env, VUnit)
@@ -183,8 +188,10 @@ and eval_decl env x =
         r := eval new_env e;
         (new_env, VUnit)
     | (_, TypeDecl _) ->
-        (env, VUnit)
+        type_decl env x
     | (_, TypeDeclAnd el) ->
+        (*TODO env *)
+        List.iter (fun x -> ignore @@ type_decl env x) el;
         (env, VUnit)
     | (_, Module id) ->
         let tab = Symbol.set_module id in
@@ -193,6 +200,13 @@ and eval_decl env x =
         (env, VUnit)
     | e ->
         (env, eval env e)
+
+and type_decl env e =
+    match e with
+    | (p, TypeDecl (id, tvl, t)) ->
+        Symbol.insert_type_if_variant id t;
+        (env, VUnit)
+    | _ -> failwith "type decl bug"
 
 and eval_top e =
     let tab = Symbol.get_current_module () in

@@ -6,8 +6,9 @@ let main () =
     let do_test = ref false in
     Arg.parse
         [
-            ("-v", Arg.Unit (fun () -> g_verbose := true), " verbose");
-            ("-t", Arg.Unit (fun () -> do_test := true),   " test");
+            ("-v", Arg.Unit (fun () -> g_verbose := true), "  verbose");
+            ("-vt", Arg.Unit (fun () -> g_verbose_type := true), " verbose type");
+            ("-t", Arg.Unit (fun () -> do_test := true),   "  test");
             ("-dps", Arg.Unit (fun () -> Parser.debug_scope_flag := true), " parser scope debug");
             ("-dpt", Arg.Unit (fun () -> Parser.debug_token_flag := true), " parser token debug");
             ("-os", Arg.Unit (fun () -> g_output_source := true), " output source style");

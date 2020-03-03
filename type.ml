@@ -3,7 +3,7 @@ open Syntax
 let error p msg = raise (Error (get_position_string p ^ ": Type Error: " ^ msg))
 
 let verbose msg =
-    if !g_verbose then
+    if !g_verbose_type then
         print_endline ("TYPE> " ^ msg)
 
 let seed = ref 0
@@ -28,6 +28,9 @@ let new_tvar  () =
     let ty = TVar (!seed, ref None) in
     incr seed;
     ty
+
+let t_id id ty =
+    TId (id, ty)
 
 let t_list t =
     TConstr (([], "list"), Some t)
@@ -185,7 +188,7 @@ and infer tenv x =
         | (_, StringLit s) -> (tenv, t_string)
         | (_, Ident "#env") ->
             (tenv, t_unit)
-        | (p, Ident id) ->
+        | (p, Ident id) | (p, CIdent id) ->
             let t =
                 (try
                     !(Env.lookup id tenv)
@@ -195,7 +198,6 @@ and infer tenv x =
                     with Not_found -> error p ("'" ^ id ^ "' not found")))
             in
             (tenv, t)
-        (*TODO Capitalized ID *)
         | (p, IdentMod (id, e)) ->
             (try
                 let tab = Symbol.lookup_module id in
@@ -239,7 +241,6 @@ and infer tenv x =
             unify p t_bool t_cond;
             let (_, t_then) = infer tenv then_e in
             let (_, t_else) = infer tenv else_e in
-            (*TODO skip unit else *)
             unify p t_then t_else;
             (tenv, t_then)
         | (p, Comp el) ->
