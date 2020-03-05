@@ -1,18 +1,18 @@
 * Function
 
-fun fact :: int -> int
+fun fact : int -> int
         = 0 -> 1
         | n -> n * fact (n-1)
 
-fun fact :: int -> int
+fun fact : int -> int
     | n when n == 0 -> 1
     | n -> n * fact (n-1)
 
-fun length :: [a] -> int
+fun length : [a] -> int
     | [] -> 0
     | _:xs -> 1 + length xs
 
-fun add :: int -> int -> int
+fun add : int -> int -> int
     = x y -> x + y
 
 let add = fn x y -> x + y 
@@ -99,19 +99,19 @@ match a {
 * module
 
 module List
-fun map :: ('a -> 'b) ['a] -> ['b]
+fun map : ('a -> 'b) 'a list -> 'b list
     | _ [] -> []
     | f x:xs -> (f x) : (map f xs)
 
-fun append :: ['a] -> ['a] -> ['a]
+fun append : 'a list -> 'a list -> 'a list
     | [] lst -> lst
     | x:xs lst -> x : (append xs lst)
 
-fun reverse :: ['a] -> ['a]
+fun reverse : 'a list -> 'a list
     | [] -> []
     | x:xs -> append (reverse xs) [x]
 
-fun length :: ['a] -> int
+fun length : 'a list -> int
     | [] -> 0
     | x:xs -> 1 + length xs
 
@@ -121,21 +121,21 @@ L.length [1,2,3]
 
 * and
 
-fun take :: ['a] -> 'a
+fun take :: 'a list -> 'a
     | [] -> []
     | x:xs -> x:(skip xs)
-and skip :: ['a] -> 'a
+and skip :: 'a list -> 'a
     | [] -> []
     | x:xs -> take xs
 
 -or-
 
-decl take :: ['a] -> 'a
-decl skip :: ['a] -> 'a
+decl take : 'a list -> 'a
+decl skip : 'a list -> 'a
 
 * 
 
-fun add :: int -> int -> int
+fun add : int -> int -> int
     | x 0 -> x
     | 0 y -> y
     | x y -> x + y
@@ -151,7 +151,7 @@ type 'a point = 'a * 'a
 
 type ('a,'b) pair = 'a * 'b
 
-decl t :: (string, int) pair
+decl t : (string, int) pair
 
 ("abc", 10) (* (string, int) pair *)
 
@@ -178,9 +178,9 @@ type l = int list
 type 'a r = 'a ref
 type 'a pair = ('a * 'a)
 type ('a, 'b) pair = ('a * 'b)
-type point2d = { mutable x :: int; mutable y :: int }
-type 'a point2d = { x :: 'a; y :: 'a }
-type ('a,'b,'c) atob = { a :: 'a; b :: 'b; c :: 'c }
+type point2d = { mutable x : int; mutable y : int }
+type 'a point2d = { x : 'a; y : 'a }
+type ('a,'b,'c) atob = { a : 'a; b : 'b; c : 'c }
 type color = | Red | Green | Blue
 type color = Red | Green | Blue
 type color = Red | Green | Blue | RGB (int * int * int)
